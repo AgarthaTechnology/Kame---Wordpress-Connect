@@ -63,23 +63,63 @@ function kame_erp_config_page() {
 }
 
 function kame_erp_functions_page() {
-    echo '<h1>Funciones de KAME ERP</h1>';
-    echo '<p>Contenido de la página de funciones.</p>';
+    ?>
+    <div class="wrap">
+        <h1>Funciones de KAME ERP</h1>
+        <form method="post" action="options.php">
+            <?php
+            settings_fields('kame_erp_functions');
+            do_settings_sections('kame_erp_functions');
+            submit_button();
+            ?>
+        </form>
+    </div>
+    <?php
 }
 
 function kame_erp_inventory_page() {
-    echo '<h1>Inventario de KAME ERP</h1>';
-    echo '<p>Contenido de la página de inventario.</p>';
+    ?>
+    <div class="wrap">
+        <h1>Inventario de KAME ERP</h1>
+        <form method="post" action="options.php">
+            <?php
+            settings_fields('kame_erp_inventory');
+            do_settings_sections('kame_erp_inventory');
+            submit_button();
+            ?>
+        </form>
+    </div>
+    <?php
 }
 
 function kame_erp_import_products_page() {
-    echo '<h1>Importar Productos</h1>';
-    echo '<p>Contenido de la página de importación de productos.</p>';
+    ?>
+    <div class="wrap">
+        <h1>Importar Productos</h1>
+        <form method="post" action="options.php">
+            <?php
+            settings_fields('kame_erp_import_products');
+            do_settings_sections('kame_erp_import_products');
+            submit_button();
+            ?>
+        </form>
+    </div>
+    <?php
 }
 
 function kame_erp_credits_page() {
-    echo '<h1>Créditos</h1>';
-    echo '<p>Contenido de la página de créditos.</p>';
+    ?>
+    <div class="wrap">
+        <h1>Créditos</h1>
+        <form method="post" action="options.php">
+            <?php
+            settings_fields('kame_erp_credits');
+            do_settings_sections('kame_erp_credits');
+            submit_button();
+            ?>
+        </form>
+    </div>
+    <?php
 }
 
 add_action('admin_menu', 'kame_erp_menu');
