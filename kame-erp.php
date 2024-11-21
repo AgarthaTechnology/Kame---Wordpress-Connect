@@ -36,3 +36,15 @@ function kame_erp_settings_link($links) {
     return $links;
 }
 add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'kame_erp_settings_link');
+
+add_action('admin_notices', 'kame_erp_check_woocommerce');
+
+function kame_erp_check_woocommerce() {
+    // Verificar si WooCommerce está activo
+    if (!is_plugin_active('woocommerce/woocommerce.php')) {
+        // Mostrar notificación
+        echo '<div class="notice notice-warning is-dismissible">';
+        echo '<p>El plugin KAME ERP requiere <strong>WooCommerce</strong> para funcionar. <a href="' . esc_url(admin_url('plugin-install.php?s=WooCommerce&tab=search&type=term')) . '">Instalar WooCommerce</a></p>';
+        echo '</div>';
+    }
+}
