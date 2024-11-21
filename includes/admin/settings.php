@@ -1,6 +1,6 @@
 <?php
 function kame_erp_settings_init() {
-    // Register settings and callbacks here
+    // Registrar ajustes y callbacks aquí
 
     add_settings_section(
         'kame_erp_section',
@@ -107,3 +107,5 @@ add_action('admin_footer', function () {
         };
     </script>';
 });
+
+add_action('admin_init', 'kame_erp_settings_init');
