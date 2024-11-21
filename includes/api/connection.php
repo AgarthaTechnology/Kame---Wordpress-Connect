@@ -54,16 +54,29 @@ function fetch_and_store_kame_erp_access_token() {
     ));
 
     if (is_wp_error($response)) {
+        error_log('Error en wp_remote_post: ' . $response->get_error_message());
+        return false;
+    }
+
+    $response_code = wp_remote_retrieve_response_code($response);
+    if ($response_code !== 200) {
+        error_log('Error en la respuesta de la API: Código de estado ' . $response_code);
         return false;
     }
 
     $body = wp_remote_retrieve_body($response);
     $data = json_decode($body);
 
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        error_log('Error al decodificar JSON: ' . json_last_error_msg());
+        return false;
+    }
+
     if (!empty($data->access_token)) {
         update_kame_erp_access_token($data);
         return $data->access_token;
     }
 
+    error_log('La respuesta de la API no contiene un token de acceso.');
     return false;
 }
