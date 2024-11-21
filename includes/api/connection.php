@@ -17,7 +17,10 @@ function kame_erp_enviar_a_api($datos_venta) {
 }
 
 function kame_erp_check_and_refresh_token() {
-    // Check and refresh token logic
+    $token_expiration = get_option('kame_erp_token_expiration', 0);
+    if (time() > $token_expiration) {
+        fetch_and_store_kame_erp_access_token();
+    }
 }
 
 function kame_erp_access_token_callback() {
@@ -30,5 +33,13 @@ function update_kame_erp_access_token($token_response) {
 }
 
 function fetch_and_store_kame_erp_access_token() {
-    // Fetch and store access token logic
-}
+    $client_id = get_option('kame_erp_client_id', '');
+    $client_secret = get_option('kame_erp_client_secret', '');
+    $usuario_kame = get_option('kame_erp_usuario_kame', '');
+
+    $response = wp_remote_post('https://api.kameerp.com/oauth/token', array(
+        'body' => array(
+            'grant_type' => 'client_credentials',
+            'client_id' => $client_id,
+            'client_secret' => $client_secret,
+            'username' => $usuario
