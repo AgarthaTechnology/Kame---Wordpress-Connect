@@ -48,8 +48,18 @@ function kame_erp_menu() {
 }
 
 function kame_erp_config_page() {
-    echo '<h1>Configuración de KAME ERP</h1>';
-    echo '<p>Contenido de la página de configuración.</p>';
+    ?>
+    <div class="wrap">
+        <h1>Configuración de KAME ERP</h1>
+        <form method="post" action="options.php">
+            <?php
+            settings_fields('kame_erp_settings');
+            do_settings_sections('kame_erp_settings');
+            submit_button();
+            ?>
+        </form>
+    </div>
+    <?php
 }
 
 function kame_erp_functions_page() {
