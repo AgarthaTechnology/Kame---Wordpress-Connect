@@ -7,7 +7,7 @@ function kame_erp_menu() {
         'kame_erp_settings', // Slug del menú
         'kame_erp_config_page', // Función para mostrar el contenido
         'dashicons-admin-generic', // Icono del menú
-        100 // Posición
+        56 // Posición (después de WooCommerce)
     );
 
     add_submenu_page(
