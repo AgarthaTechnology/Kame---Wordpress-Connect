@@ -1,6 +1,6 @@
 <?php
 function kame_erp_inventory_settings_init() {
-    // Register inventory settings here
+    // Registrar configuraciones de inventario aquí
 }
 
 function kame_erp_inventory_section_callback() {
@@ -8,19 +8,19 @@ function kame_erp_inventory_section_callback() {
 }
 
 function kame_erp_warehouses_callback() {
-    // Callback for warehouses
+    // Callback para almacenes
 }
 
 function kame_erp_sync_frequency_callback() {
-    // Callback for sync frequency
+    // Callback para la frecuencia de sincronización
 }
 
 function kame_erp_sanitize_warehouses($input) {
-    // Sanitize warehouses input
+    // Sanitizar entrada de almacenes
 }
 
 function kame_erp_add_warehouse_field() {
-    // Add custom warehouse field
+    // Agregar campo personalizado de almacenes
 }
 
 function kame_erp_save_warehouse_field($post_id) {
