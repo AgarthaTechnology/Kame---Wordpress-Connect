@@ -38,15 +38,19 @@ function update_kame_erp_access_token($token_response) {
 function fetch_and_store_kame_erp_access_token() {
     $client_id = get_option('kame_erp_client_id', '');
     $client_secret = get_option('kame_erp_client_secret', '');
-    $usuario_kame = get_option('kame_erp_usuario_kame', '');
+    $audience = 'https://api.kameone.cl/api';
+    $grant_type = 'client_credentials';
 
-    $response = wp_remote_post('https://api.kameerp.com/oauth/token', array(
-        'body' => array(
-            'grant_type' => 'client_credentials',
+    $response = wp_remote_post('https://api.kameone.cl/oauth/token', array(
+        'headers' => array(
+            'Content-Type' => 'application/json'
+        ),
+        'body' => json_encode(array(
             'client_id' => $client_id,
             'client_secret' => $client_secret,
-            'username' => $usuario_kame,
-        ),
+            'audience' => $audience,
+            'grant_type' => $grant_type
+        ))
     ));
 
     if (is_wp_error($response)) {
