@@ -1,6 +1,6 @@
 <?php
 function kame_erp_functions_settings_init() {
-    // Register function settings here
+    // Registrar configuraciones de funciones aquí
 }
 
 function kame_erp_functions_section_callback() {
@@ -8,9 +8,9 @@ function kame_erp_functions_section_callback() {
 }
 
 function kame_erp_enable_integration_callback() {
-    // Callback for enabling integration
+    // Callback para habilitar la integración
 }
 
 function kame_erp_enable_sync_callback() {
-    // Callback for enabling sync
+    // Callback para habilitar la sincronización
 }
