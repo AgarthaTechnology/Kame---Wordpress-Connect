@@ -1,17 +1,15 @@
 <?php
 function kame_erp_settings_init() {
-    // Registrar ajustes y callbacks aquí
-
     add_settings_section(
         'kame_erp_section',
-        __('Configuración de KAME ERP', 'kame-erp'),
+        'Configuración de KAME ERP',
         'kame_erp_section_callback',
         'kame_erp_settings'
     );
 
     add_settings_field(
         'kame_erp_client_id',
-        __('Client ID', 'kame-erp'),
+        'Client ID',
         'kame_erp_client_id_callback',
         'kame_erp_settings',
         'kame_erp_section'
@@ -19,7 +17,7 @@ function kame_erp_settings_init() {
 
     add_settings_field(
         'kame_erp_client_secret',
-        __('Client Secret', 'kame-erp'),
+        'Client Secret',
         'kame_erp_client_secret_callback',
         'kame_erp_settings',
         'kame_erp_section'
@@ -27,7 +25,7 @@ function kame_erp_settings_init() {
 
     add_settings_field(
         'kame_erp_usuario_kame',
-        __('Usuario KAME', 'kame-erp'),
+        'Usuario KAME',
         'kame_erp_usuario_kame_callback',
         'kame_erp_settings',
         'kame_erp_section'
@@ -35,7 +33,7 @@ function kame_erp_settings_init() {
 
     add_settings_field(
         'kame_erp_token_info',
-        __('Token Information', 'kame-erp'),
+        'Información del Token',
         'kame_erp_token_info_callback',
         'kame_erp_settings',
         'kame_erp_section'
@@ -43,7 +41,7 @@ function kame_erp_settings_init() {
 
     add_settings_field(
         'kame_erp_manual_token_button',
-        __('Obtener Token Manualmente', 'kame-erp'),
+        'Obtener Token Manualmente',
         'kame_erp_manual_token_button_callback',
         'kame_erp_settings',
         'kame_erp_section'
