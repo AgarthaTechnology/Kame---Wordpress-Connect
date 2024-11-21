@@ -50,6 +50,8 @@ function kame_erp_settings_init() {
     register_setting('kame_erp_settings', 'kame_erp_client_id');
     register_setting('kame_erp_settings', 'kame_erp_client_secret');
     register_setting('kame_erp_settings', 'kame_erp_usuario_kame');
+    register_setting('kame_erp_settings', 'kame_erp_access_token');
+    register_setting('kame_erp_settings', 'kame_erp_token_expiration');
 }
 
 function kame_erp_section_callback() {
@@ -107,3 +109,42 @@ add_action('admin_footer', function () {
 });
 
 add_action('admin_init', 'kame_erp_settings_init');
+
+// Función para obtener y almacenar el token de acceso de KAME ERP
+function fetch_and_store_kame_erp_access_token() {
+    $client_id = get_option('kame_erp_client_id');
+    $client_secret = get_option('kame_erp_client_secret');
+    $usuario_kame = get_option('kame_erp_usuario_kame');
+
+    // URL de la API de KAME ERP para obtener el token
+    $url = 'https://api.kameerp.com/oauth/token';
+
+    // Configuración de la solicitud
+    $response = wp_remote_post($url, array(
+        'body' => array(
+            'client_id' => $client_id,
+            'client_secret' => $client_secret,
+            'username' => $usuario_kame,
+            'grant_type' => 'client_credentials'
+        )
+    ));
+
+    // Manejar la respuesta
+    if (is_wp_error($response)) {
+        wp_send_json_error(array('message' => 'Error al hacer la solicitud a la API.'));
+    } else {
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+
+        if (isset($data['access_token'])) {
+            update_option('kame_erp_access_token', $data['access_token']);
+            update_option('kame_erp_token_expiration', time() + $data['expires_in']);
+            wp_send_json_success();
+        } else {
+            wp_send_json_error(array('message' => 'Error en la respuesta de la API.'));
+        }
+    }
+}
+
+// Registrar la función AJAX
+add_action('wp_ajax_fetch_and_store_kame_erp_access_token', 'fetch_and_store_kame_erp_access_token');
