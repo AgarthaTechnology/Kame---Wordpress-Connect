@@ -1,6 +1,6 @@
 <?php
 function kame_erp_get_access_token() {
-    // Get access token logic
+    return get_option('kame_erp_access_token', '');
 }
 
 function kame_erp_check_connection() {
@@ -29,7 +29,10 @@ function kame_erp_access_token_callback() {
 }
 
 function update_kame_erp_access_token($token_response) {
-    // Update access token logic
+    if (!empty($token_response->access_token)) {
+        update_option('kame_erp_access_token', $token_response->access_token);
+        update_option('kame_erp_token_expiration', time() + $token_response->expires_in);
+    }
 }
 
 function fetch_and_store_kame_erp_access_token() {
@@ -42,4 +45,21 @@ function fetch_and_store_kame_erp_access_token() {
             'grant_type' => 'client_credentials',
             'client_id' => $client_id,
             'client_secret' => $client_secret,
-            'username' => $usuario
+            'username' => $usuario_kame,
+        ),
+    ));
+
+    if (is_wp_error($response)) {
+        return false;
+    }
+
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body);
+
+    if (!empty($data->access_token)) {
+        update_kame_erp_access_token($data);
+        return $data->access_token;
+    }
+
+    return false;
+}
