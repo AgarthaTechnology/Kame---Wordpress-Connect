@@ -1,6 +1,6 @@
 <?php
 function kame_erp_import_products() {
-    // Import products logic
+    // Lógica para importar productos
 }
 
 function kame_erp_add_product_columns($columns) {
@@ -9,9 +9,9 @@ function kame_erp_add_product_columns($columns) {
 }
 
 function kame_erp_product_column_content($column, $post_id) {
-    // Content for custom product column
+    // Contenido para la columna personalizada de productos
 }
 
 function kame_erp_product_column_styles() {
-    // Styles for custom product column
+    // Estilos para la columna personalizada de productos
 }
