@@ -2,7 +2,7 @@
 /*
 Plugin Name: Kame ERP - WooCommerce Integration
 Description: Integrates WooCommerce with Kame ERP.
-Version: 1.0
+Version: 3.1
 Author: Agartha Marketing Agency
 Author URI: https://agarthamarketing.com
 */
@@ -27,3 +27,12 @@ function kame_erp_init() {
     kame_erp_schedule_inventory_sync();
 }
 add_action('admin_init', 'kame_erp_init');
+add_action('admin_menu', 'kame_erp_menu');
+
+// Add settings link on plugin page
+function kame_erp_settings_link($links) {
+    $settings_link = '<a href="options-general.php?page=kame_erp_settings">' . __('Settings') . '</a>';
+    array_unshift($links, $settings_link);
+    return $links;
+}
+add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'kame_erp_settings_link');
