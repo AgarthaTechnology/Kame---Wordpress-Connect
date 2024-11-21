@@ -1,7 +1,7 @@
 <?php
 function kame_erp_menu() {
     add_menu_page(
-        'KAME ERP Settings', // Título de la página
+        'Configuración de KAME ERP', // Título de la página
         'KAME ERP', // Título del menú
         'manage_options', // Capacidad requerida
         'kame_erp_settings', // Slug del menú
@@ -12,8 +12,8 @@ function kame_erp_menu() {
 
     add_submenu_page(
         'kame_erp_settings', // Slug del menú principal
-        'KAME ERP Functions', // Título de la página
-        'Functions', // Título del submenú
+        'Funciones de KAME ERP', // Título de la página
+        'Funciones', // Título del submenú
         'manage_options', // Capacidad requerida
         'kame_erp_functions', // Slug del submenú
         'kame_erp_functions_page' // Función para mostrar el contenido
@@ -21,8 +21,8 @@ function kame_erp_menu() {
 
     add_submenu_page(
         'kame_erp_settings',
-        'KAME ERP Inventory',
-        'Inventory',
+        'Inventario de KAME ERP',
+        'Inventario',
         'manage_options',
         'kame_erp_inventory',
         'kame_erp_inventory_page'
@@ -30,8 +30,8 @@ function kame_erp_menu() {
 
     add_submenu_page(
         'kame_erp_settings',
-        'Import Products',
-        'Import Products',
+        'Importar Productos',
+        'Importar Productos',
         'manage_options',
         'kame_erp_import_products',
         'kame_erp_import_products_page'
@@ -39,8 +39,8 @@ function kame_erp_menu() {
 
     add_submenu_page(
         'kame_erp_settings',
-        'Credits',
-        'Credits',
+        'Créditos',
+        'Créditos',
         'manage_options',
         'kame_erp_credits',
         'kame_erp_credits_page'
@@ -48,28 +48,28 @@ function kame_erp_menu() {
 }
 
 function kame_erp_config_page() {
-    echo '<h1>KAME ERP Settings</h1>';
-    // Agrega el contenido de la página de configuración aquí
+    echo '<h1>Configuración de KAME ERP</h1>';
+    echo '<p>Contenido de la página de configuración.</p>';
 }
 
 function kame_erp_functions_page() {
-    echo '<h1>KAME ERP Functions</h1>';
-    // Agrega el contenido de la página de funciones aquí
+    echo '<h1>Funciones de KAME ERP</h1>';
+    echo '<p>Contenido de la página de funciones.</p>';
 }
 
 function kame_erp_inventory_page() {
-    echo '<h1>KAME ERP Inventory</h1>';
-    // Agrega el contenido de la página de inventario aquí
+    echo '<h1>Inventario de KAME ERP</h1>';
+    echo '<p>Contenido de la página de inventario.</p>';
 }
 
 function kame_erp_import_products_page() {
-    echo '<h1>Import Products</h1>';
-    // Agrega el contenido de la página de importación de productos aquí
+    echo '<h1>Importar Productos</h1>';
+    echo '<p>Contenido de la página de importación de productos.</p>';
 }
 
 function kame_erp_credits_page() {
-    echo '<h1>Credits</h1>';
-    // Agrega el contenido de la página de créditos aquí
+    echo '<h1>Créditos</h1>';
+    echo '<p>Contenido de la página de créditos.</p>';
 }
 
 add_action('admin_menu', 'kame_erp_menu');
