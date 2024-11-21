@@ -2,7 +2,7 @@
 /*
 Plugin Name: Kame ERP - WooCommerce Integration
 Description: Integrates WooCommerce with Kame ERP.
-Version: 3.1.4
+Version: 3.2.7
 Author: Agartha Marketing Agency
 Author URI: https://agarthamarketing.com
 */
