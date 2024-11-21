@@ -78,7 +78,7 @@ function kame_erp_usuario_kame_callback() {
 
 function kame_erp_token_info_callback() {
     $access_token = get_option('kame_erp_access_token', '');
-    $token_expiration = get_option('kame_erp_token_expiration', 0);
+    $token_expiration = (int) get_option('kame_erp_token_expiration', 0);
     $expiration_date = date('Y-m-d H:i:s', $token_expiration);
     echo '<p>Access Token: <input type="text" value="' . esc_attr($access_token) . '" style="width: 100%;" readonly></p>';
     echo '<p>Token Expiration: <input type="text" value="' . esc_attr($expiration_date) . '" style="width: 100%;" readonly></p>';
