@@ -41,42 +41,62 @@ function fetch_and_store_kame_erp_access_token() {
     $audience = 'https://api.kameone.cl/api';
     $grant_type = 'client_credentials';
 
-    $response = wp_remote_post('https://api.kameone.cl/oauth/token', array(
-        'headers' => array(
-            'Content-Type' => 'application/json'
-        ),
-        'body' => json_encode(array(
+    error_log('Fetching KAME ERP access token...');
+
+    $curl = curl_init();
+
+    curl_setopt_array($curl, array(
+        CURLOPT_URL => 'https://api.kameone.cl/oauth/token',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => '',
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 0,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => 'POST',
+        CURLOPT_POSTFIELDS => json_encode(array(
             'client_id' => $client_id,
             'client_secret' => $client_secret,
             'audience' => $audience,
             'grant_type' => $grant_type
-        ))
+        )),
+        CURLOPT_HTTPHEADER => array(
+            'Content-Type: application/json'
+        ),
     ));
 
-    if (is_wp_error($response)) {
-        error_log('Error en wp_remote_post: ' . $response->get_error_message());
+    $response = curl_exec($curl);
+
+    if (curl_errno($curl)) {
+        error_log('Error en cURL: ' . curl_error($curl));
+        curl_close($curl);
         return false;
     }
 
-    $response_code = wp_remote_retrieve_response_code($response);
-    if ($response_code !== 200) {
-        error_log('Error en la respuesta de la API: Código de estado ' . $response_code);
+    $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    if ($http_code !== 200) {
+        error_log('Error en la respuesta de la API: Código de estado ' . $http_code);
+        error_log('Respuesta completa: ' . $response);
+        curl_close($curl);
         return false;
     }
 
-    $body = wp_remote_retrieve_body($response);
-    $data = json_decode($body);
+    curl_close($curl);
+
+    $data = json_decode($response);
 
     if (json_last_error() !== JSON_ERROR_NONE) {
         error_log('Error al decodificar JSON: ' . json_last_error_msg());
+        error_log('Cuerpo de la respuesta: ' . $response);
         return false;
     }
 
     if (!empty($data->access_token)) {
         update_kame_erp_access_token($data);
+        error_log('Token obtenido exitosamente.');
         return $data->access_token;
     }
 
-    error_log('La respuesta de la API no contiene un token de acceso.');
+    error_log('La respuesta de la API no contiene un token de acceso. Respuesta: ' . $response);
     return false;
 }
