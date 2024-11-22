@@ -1,4 +1,5 @@
 <?php
+// Función para obtener y almacenar el token de acceso
 function fetch_and_store_kame_erp_access_token() {
     $client_id = get_option('kame_erp_client_id', '');
     $client_secret = get_option('kame_erp_client_secret', '');
@@ -58,5 +59,39 @@ function fetch_and_store_kame_erp_access_token() {
     wp_send_json_error('No se pudo obtener el token.');
 }
 
-// Registrar el hook AJAX
+// Función para verificar la conexión
+function kame_erp_check_connection() {
+    $access_token = get_option('kame_erp_access_token', '');
+    if (empty($access_token)) {
+        return false;
+    }
+
+    $response = wp_remote_get('https://api.kameone.cl/api/status', array(
+        'headers' => array(
+            'Authorization' => 'Bearer ' . $access_token,
+        ),
+    ));
+
+    if (is_wp_error($response)) {
+        return false;
+    }
+
+    $status_code = wp_remote_retrieve_response_code($response);
+    return $status_code === 200;
+}
+
+// Agregar estado al Admin Bar
+add_action('admin_bar_menu', function ($admin_bar) {
+    $is_connected = kame_erp_check_connection();
+    $status_text = $is_connected ? 'Online' : 'Offline';
+    $status_class = $is_connected ? 'status-online' : 'status-offline';
+
+    $admin_bar->add_node(array(
+        'id'    => 'kame_erp_connection_status',
+        'title' => 'KAME ERP: <span class="' . esc_attr($status_class) . '">' . esc_html($status_text) . '</span>',
+        'meta'  => array('title' => 'Estado de conexión con KAME ERP'),
+    ));
+});
+
+// Registrar el hook AJAX para obtener el token
 add_action('wp_ajax_fetch_and_store_kame_erp_access_token', 'fetch_and_store_kame_erp_access_token');
