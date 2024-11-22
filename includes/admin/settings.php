@@ -37,6 +37,14 @@ function kame_erp_settings_init() {
     );
 
     add_settings_field(
+        'kame_erp_token_expiration',
+        'Expiración del Token',
+        'kame_erp_token_expiration_callback',
+        'kame_erp_settings',
+        'kame_erp_section'
+    );
+
+    add_settings_field(
         'kame_erp_connection_status',
         'Estado de Conexión',
         'kame_erp_connection_status_callback',
@@ -79,7 +87,14 @@ function kame_erp_token_status_callback() {
     $status_text = $is_available ? 'DISPONIBLE' : 'NO DISPONIBLE';
     $status_class = $is_available ? 'status-available' : 'status-unavailable';
 
-    echo '<div class="' . esc_attr($status_class) . '">' . esc_html($status_text) . '</div>';
+    echo '<span class="' . esc_attr($status_class) . '">' . esc_html($status_text) . '</span>';
+}
+
+function kame_erp_token_expiration_callback() {
+    $token_expiration = (int) get_option('kame_erp_token_expiration', 0);
+    $expiration_date = $token_expiration ? date('Y-m-d H:i:s', $token_expiration) : 'No configurado';
+
+    echo '<input type="text" value="' . esc_attr($expiration_date) . '" style="width: 100%;" readonly>';
 }
 
 function kame_erp_connection_status_callback() {
@@ -87,7 +102,7 @@ function kame_erp_connection_status_callback() {
     $status_text = $is_connected ? 'ONLINE' : 'OFFLINE';
     $status_class = $is_connected ? 'status-online' : 'status-offline';
 
-    echo '<div class="' . esc_attr($status_class) . '">' . esc_html($status_text) . '</div>';
+    echo '<span class="' . esc_attr($status_class) . '">' . esc_html($status_text) . '</span>';
 }
 
 function kame_erp_manual_token_button_callback() {
@@ -134,6 +149,7 @@ add_action('admin_head', function () {
             padding: 5px 10px;
             border-radius: 5px;
             font-weight: bold;
+            display: inline-block;
         }
         .status-offline {
             background-color: #dc3545;
@@ -141,6 +157,7 @@ add_action('admin_head', function () {
             padding: 5px 10px;
             border-radius: 5px;
             font-weight: bold;
+            display: inline-block;
         }
         .status-available {
             background-color: #28a745;
@@ -148,6 +165,7 @@ add_action('admin_head', function () {
             padding: 5px 10px;
             border-radius: 5px;
             font-weight: bold;
+            display: inline-block;
         }
         .status-unavailable {
             background-color: #dc3545;
@@ -155,6 +173,7 @@ add_action('admin_head', function () {
             padding: 5px 10px;
             border-radius: 5px;
             font-weight: bold;
+            display: inline-block;
         }
     </style>';
 });
