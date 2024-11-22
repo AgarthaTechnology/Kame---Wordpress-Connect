@@ -1,22 +1,22 @@
 <?php
 function kame_erp_menu() {
     add_menu_page(
-        'Configuración de KAME ERP', // Título de la página
-        'KAME ERP', // Título del menú
-        'manage_options', // Capacidad requerida
-        'kame_erp_settings', // Slug del menú
-        'kame_erp_config_page', // Función para mostrar el contenido
-        'dashicons-admin-generic', // Icono del menú
-        56 // Posición (después de WooCommerce)
+        'Configuración de KAME ERP', 
+        'KAME ERP', 
+        'manage_options', 
+        'kame_erp_settings', 
+        'kame_erp_config_page', 
+        'dashicons-admin-generic', 
+        56 
     );
 
     add_submenu_page(
-        'kame_erp_settings', // Slug del menú principal
-        'Funciones de KAME ERP', // Título de la página
-        'Funciones', // Título del submenú
-        'manage_options', // Capacidad requerida
-        'kame_erp_functions', // Slug del submenú
-        'kame_erp_functions_page' // Función para mostrar el contenido
+        'kame_erp_settings', 
+        'Funciones de KAME ERP', 
+        'Funciones', 
+        'manage_options', 
+        'kame_erp_functions', 
+        'kame_erp_functions_page' 
     );
 
     add_submenu_page(
@@ -30,11 +30,11 @@ function kame_erp_menu() {
 
     add_submenu_page(
         'kame_erp_settings',
-        'Importar Productos',
+        'Importar/Exportar Kame-Woocommerce',
         'Importar Productos',
         'manage_options',
         'kame_erp_import_products',
-        'kame_erp_import_products_page'
+        'kame_erp_import_export_page' // Solo referencia a la función definida en import-products.php
     );
 
     add_submenu_page(
@@ -45,81 +45,6 @@ function kame_erp_menu() {
         'kame_erp_credits',
         'kame_erp_credits_page'
     );
-}
-
-function kame_erp_config_page() {
-    ?>
-    <div class="wrap">
-        <h1>Configuración de KAME ERP</h1>
-        <form method="post" action="options.php">
-            <?php
-            settings_fields('kame_erp_settings');
-            do_settings_sections('kame_erp_settings');
-            submit_button();
-            ?>
-        </form>
-    </div>
-    <?php
-}
-
-function kame_erp_functions_page() {
-    ?>
-    <div class="wrap">
-        <h1>Funciones de KAME ERP</h1>
-        <form method="post" action="options.php">
-            <?php
-            settings_fields('kame_erp_functions');
-            do_settings_sections('kame_erp_functions');
-            submit_button();
-            ?>
-        </form>
-    </div>
-    <?php
-}
-
-function kame_erp_inventory_page() {
-    ?>
-    <div class="wrap">
-        <h1>Inventario de KAME ERP</h1>
-        <form method="post" action="options.php">
-            <?php
-            settings_fields('kame_erp_inventory');
-            do_settings_sections('kame_erp_inventory');
-            submit_button();
-            ?>
-        </form>
-    </div>
-    <?php
-}
-
-function kame_erp_import_products_page() {
-    ?>
-    <div class="wrap">
-        <h1>Importar Productos</h1>
-        <form method="post" action="options.php">
-            <?php
-            settings_fields('kame_erp_import_products');
-            do_settings_sections('kame_erp_import_products');
-            submit_button();
-            ?>
-        </form>
-    </div>
-    <?php
-}
-
-function kame_erp_credits_page() {
-    ?>
-    <div class="wrap">
-        <h1>Créditos</h1>
-        <form method="post" action="options.php">
-            <?php
-            settings_fields('kame_erp_credits');
-            do_settings_sections('kame_erp_credits');
-            submit_button();
-            ?>
-        </form>
-    </div>
-    <?php
 }
 
 add_action('admin_menu', 'kame_erp_menu');
