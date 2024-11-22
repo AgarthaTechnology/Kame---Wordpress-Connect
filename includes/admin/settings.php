@@ -3,6 +3,9 @@
 require_once plugin_dir_path(__FILE__) . '../api/connection.php';
 
 function kame_erp_settings_init() {
+    global $wpdb; // Accede a la base de datos de WordPress
+    $prefix = $wpdb->prefix; // Usa el prefijo dinámico
+
     add_settings_section(
         'kame_erp_section',
         'Configuración de KAME ERP',
@@ -50,11 +53,11 @@ function kame_erp_settings_init() {
         'kame_erp_section'
     );
 
-    register_setting('kame_erp_settings', 'kame_erp_client_id');
-    register_setting('kame_erp_settings', 'kame_erp_client_secret');
-    register_setting('kame_erp_settings', 'kame_erp_usuario_kame');
-    register_setting('kame_erp_settings', 'kame_erp_access_token');
-    register_setting('kame_erp_settings', 'kame_erp_token_expiration');
+    register_setting('kame_erp_settings', $prefix . 'kame_erp_client_id');
+    register_setting('kame_erp_settings', $prefix . 'kame_erp_client_secret');
+    register_setting('kame_erp_settings', $prefix . 'kame_erp_usuario_kame');
+    register_setting('kame_erp_settings', $prefix . 'kame_erp_access_token');
+    register_setting('kame_erp_settings', $prefix . 'kame_erp_token_expiration');
 }
 
 function kame_erp_section_callback() {
@@ -62,29 +65,42 @@ function kame_erp_section_callback() {
 }
 
 function kame_erp_client_id_callback() {
-    $client_id = get_option('kame_erp_client_id', '');
-    echo '<input type="text" name="kame_erp_client_id" value="' . esc_attr($client_id) . '" style="width: 100%;" required>';
+    global $wpdb;
+    $client_id = get_option($wpdb->prefix . 'kame_erp_client_id', '');
+    echo '<input type="text" name="' . $wpdb->prefix . 'kame_erp_client_id" value="' . esc_attr($client_id) . '" style="width: 100%;" required>';
 }
 
 function kame_erp_client_secret_callback() {
-    $client_secret = get_option('kame_erp_client_secret', '');
-    echo '<input type="password" name="kame_erp_client_secret" value="' . esc_attr($client_secret) . '" style="width: 100%;" required>';
+    global $wpdb;
+    $client_secret = get_option($wpdb->prefix . 'kame_erp_client_secret', '');
+    echo '<input type="password" name="' . $wpdb->prefix . 'kame_erp_client_secret" value="' . esc_attr($client_secret) . '" style="width: 100%;" required>';
 }
 
 function kame_erp_usuario_kame_callback() {
-    $usuario_kame = get_option('kame_erp_usuario_kame', '');
-    echo '<input type="text" name="kame_erp_usuario_kame" value="' . esc_attr($usuario_kame) . '" style="width: 100%;" required>';
+    global $wpdb;
+    $usuario_kame = get_option($wpdb->prefix . 'kame_erp_usuario_kame', '');
+    echo '<input type="text" name="' . $wpdb->prefix . 'kame_erp_usuario_kame" value="' . esc_attr($usuario_kame) . '" style="width: 100%;" required>';
 }
 
 function kame_erp_token_info_callback() {
-    $access_token = get_option('kame_erp_access_token', '');
-    $token_expiration = (int) get_option('kame_erp_token_expiration', 0);
+    global $wpdb;
+    $access_token = get_option($wpdb->prefix . 'kame_erp_access_token', '');
+    $token_expiration = (int) get_option($wpdb->prefix . 'kame_erp_token_expiration', 0);
     $expiration_date = date('Y-m-d H:i:s', $token_expiration);
     echo '<p>Access Token: <input type="text" value="' . esc_attr($access_token) . '" style="width: 100%;" readonly></p>';
     echo '<p>Token Expiration: <input type="text" value="' . esc_attr($expiration_date) . '" style="width: 100%;" readonly></p>';
 }
 
 function kame_erp_manual_token_button_callback() {
+    global $wpdb;
+    $client_id = get_option($wpdb->prefix . 'kame_erp_client_id', '');
+    $client_secret = get_option($wpdb->prefix . 'kame_erp_client_secret', '');
+
+    if (empty($client_id) || empty($client_secret)) {
+        echo '<p style="color: red;">Por favor, introduce el Client ID y el Client Secret antes de obtener el token.</p>';
+        return;
+    }
+
     echo '<button id="kame_erp_manual_token_button">Obtener Token Manualmente</button>';
 }
 
