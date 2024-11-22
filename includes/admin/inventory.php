@@ -9,7 +9,7 @@ function kame_erp_inventory_settings_init() {
 
     add_settings_field(
         'kame_erp_warehouses',
-        'Almacenes',
+        'Bodegas',  // Cambiado de "Almacenes" a "Bodegas"
         'kame_erp_warehouses_callback',
         'kame_erp_inventory',
         'kame_erp_inventory_section'
@@ -46,6 +46,9 @@ function kame_erp_sync_frequency_callback() {
 }
 
 function kame_erp_sanitize_warehouses($input) {
+    if (is_array($input)) {
+        $input = json_encode($input);
+    }
     $warehouses = json_decode($input, true);
     return is_array($warehouses) ? $warehouses : [];
 }
