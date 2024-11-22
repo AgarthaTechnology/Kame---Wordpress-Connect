@@ -100,3 +100,6 @@ function fetch_and_store_kame_erp_access_token() {
     error_log('La respuesta de la API no contiene un token de acceso. Respuesta: ' . $response);
     return false;
 }
+
+// Registrar el hook AJAX
+add_action('wp_ajax_fetch_and_store_kame_erp_access_token', 'fetch_and_store_kame_erp_access_token');
