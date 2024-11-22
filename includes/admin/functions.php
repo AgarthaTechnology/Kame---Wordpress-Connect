@@ -10,7 +10,7 @@ function kame_erp_functions_settings_init() {
     add_settings_field(
         'kame_erp_enable_integration',
         'Habilitar Integración',
-        'kame_erp_enable_integration_callback',
+        function() { kame_erp_checkbox_field_callback('kame_erp_enable_integration'); },
         'kame_erp_functions',
         'kame_erp_functions_section'
     );
@@ -18,7 +18,7 @@ function kame_erp_functions_settings_init() {
     add_settings_field(
         'kame_erp_enable_sync',
         'Habilitar Sincronización',
-        'kame_erp_enable_sync_callback',
+        function() { kame_erp_checkbox_field_callback('kame_erp_enable_sync'); },
         'kame_erp_functions',
         'kame_erp_functions_section'
     );
@@ -31,14 +31,9 @@ function kame_erp_functions_section_callback() {
     echo '<p>Puedes activar o desactivar las funciones integradas del plugin según tus necesidades.</p>';
 }
 
-function kame_erp_enable_integration_callback() {
-    $checked = get_option('kame_erp_enable_integration') ? 'checked' : '';
-    echo '<input type="checkbox" name="kame_erp_enable_integration" ' . $checked . '>';
-}
-
-function kame_erp_enable_sync_callback() {
-    $checked = get_option('kame_erp_enable_sync') ? 'checked' : '';
-    echo '<input type="checkbox" name="kame_erp_enable_sync" ' . $checked . '>';
+function kame_erp_checkbox_field_callback($option_name) {
+    $checked = get_option($option_name) ? 'checked' : '';
+    echo '<input type="checkbox" name="' . esc_attr($option_name) . '" ' . $checked . '>';
 }
 
 add_action('admin_init', 'kame_erp_functions_settings_init');
