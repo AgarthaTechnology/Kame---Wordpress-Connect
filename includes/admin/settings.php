@@ -1,5 +1,5 @@
 <?php
-// Incluir el archivo connection.php para usar la función fetch_and_store_kame_erp_access_token
+// Incluye el archivo connection.php para usar las funciones de conexión
 require_once plugin_dir_path(__FILE__) . '../api/connection.php';
 
 function kame_erp_settings_init() {
@@ -29,9 +29,17 @@ function kame_erp_settings_init() {
     );
 
     add_settings_field(
-        'kame_erp_token_info',
-        'Información del Token',
-        'kame_erp_token_info_callback',
+        'kame_erp_token_status',
+        'Disponibilidad del Token',
+        'kame_erp_token_status_callback',
+        'kame_erp_settings',
+        'kame_erp_section'
+    );
+
+    add_settings_field(
+        'kame_erp_connection_status',
+        'Estado de Conexión',
+        'kame_erp_connection_status_callback',
         'kame_erp_settings',
         'kame_erp_section'
     );
@@ -65,13 +73,21 @@ function kame_erp_client_secret_callback() {
     echo '<input type="password" name="kame_erp_client_secret" value="' . esc_attr($client_secret) . '" style="width: 100%;" required>';
 }
 
-function kame_erp_token_info_callback() {
+function kame_erp_token_status_callback() {
     $access_token = get_option('kame_erp_access_token', '');
-    $token_expiration = (int) get_option('kame_erp_token_expiration', 0);
-    $expiration_date = $token_expiration ? date('Y-m-d H:i:s', $token_expiration) : 'No configurado';
+    $is_available = !empty($access_token);
+    $status_text = $is_available ? 'Disponible' : 'No Disponible';
+    $status_class = $is_available ? 'status-available' : 'status-unavailable';
 
-    echo '<p>Access Token: <input type="text" value="' . esc_attr($access_token) . '" style="width: 100%;" readonly></p>';
-    echo '<p>Token Expiration: <input type="text" value="' . esc_attr($expiration_date) . '" style="width: 100%;" readonly></p>';
+    echo '<p>Token: <span class="' . esc_attr($status_class) . '">' . esc_html($status_text) . '</span></p>';
+}
+
+function kame_erp_connection_status_callback() {
+    $is_connected = kame_erp_check_connection();
+    $status_text = $is_connected ? 'Online' : 'Offline';
+    $status_class = $is_connected ? 'status-online' : 'status-offline';
+
+    echo '<p>Conexión: <span class="' . esc_attr($status_class) . '">' . esc_html($status_text) . '</span></p>';
 }
 
 function kame_erp_manual_token_button_callback() {
@@ -107,6 +123,28 @@ add_action('admin_footer', function () {
             });
         };
     </script>';
+});
+
+// Estilos para los indicadores de estado
+add_action('admin_head', function () {
+    echo '<style>
+        .status-online {
+            color: green;
+            font-weight: bold;
+        }
+        .status-offline {
+            color: red;
+            font-weight: bold;
+        }
+        .status-available {
+            color: green;
+            font-weight: bold;
+        }
+        .status-unavailable {
+            color: red;
+            font-weight: bold;
+        }
+    </style>';
 });
 
 // Inicializar la configuración
