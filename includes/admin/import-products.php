@@ -1,37 +1,23 @@
 <?php
-function kame_erp_import_products_settings_init() {
-    add_settings_section(
-        'kame_erp_import_products_section',
-        'Configuración de Importación de Productos',
-        'kame_erp_import_products_section_callback',
-        'kame_erp_import_products'
-    );
 
-    add_settings_field(
-        'kame_erp_import_frequency',
-        'Frecuencia de Importación',
-        'kame_erp_import_frequency_callback',
+// Function to manually import products from KAME ERP to WooCommerce
+function kame_erp_import_products() {
+    // Here would go the logic for manually importing products from the KAME ERP API and creating them in WooCommerce
+}
+
+// Add the option in WordPress admin to manually trigger the product import
+function kame_erp_import_products_menu() {
+    add_menu_page(
+        'Importar/Exportar Kame-Woocommerce',
+        'Importar Productos',
+        'manage_options',
         'kame_erp_import_products',
-        'kame_erp_import_products_section'
+        'kame_erp_import_products_page'
     );
-
-    register_setting('kame_erp_import_products', 'kame_erp_import_frequency');
 }
+add_action('admin_menu', 'kame_erp_import_products_menu');
 
-function kame_erp_import_products_section_callback() {
-    echo '<p>Configura las opciones de importación de productos.</p>';
-}
-
-function kame_erp_import_frequency_callback() {
-    $frequency = get_option('kame_erp_import_frequency', 'daily');
-    echo '<select name="kame_erp_import_frequency">
-            <option value="hourly" ' . selected($frequency, 'hourly', false) . '>Cada hora</option>
-            <option value="twicedaily" ' . selected($frequency, 'twicedaily', false) . '>Dos veces al día</option>
-            <option value="daily" ' . selected($frequency, 'daily', false) . '>Diariamente</option>
-          </select>';
-}
-
-function kame_erp_import_export_page() {
+function kame_erp_import_products_page() {
     ?>
     <div class="wrap">
         <h1>Importar/Exportar Kame-Woocommerce</h1>
@@ -65,12 +51,11 @@ function kame_erp_import_export_page() {
 
 function kame_erp_import_products_ajax_handler() {
     try {
-        import_products_from_kame();
+        kame_erp_import_products();
         wp_send_json_success();
     } catch (Exception $e) {
         wp_send_json_error(['message' => $e->getMessage()]);
     }
 }
 add_action('wp_ajax_import_products_from_kame', 'kame_erp_import_products_ajax_handler');
-
-add_action('admin_init', 'kame_erp_import_products_settings_init');
+?>
