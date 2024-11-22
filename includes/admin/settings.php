@@ -53,11 +53,12 @@ function kame_erp_settings_init() {
         'kame_erp_section'
     );
 
-    register_setting('kame_erp_settings', $prefix . 'kame_erp_client_id');
-    register_setting('kame_erp_settings', $prefix . 'kame_erp_client_secret');
-    register_setting('kame_erp_settings', $prefix . 'kame_erp_usuario_kame');
-    register_setting('kame_erp_settings', $prefix . 'kame_erp_access_token');
-    register_setting('kame_erp_settings', $prefix . 'kame_erp_token_expiration');
+    // Añadir sanitización y validación
+    register_setting('kame_erp_settings', $prefix . 'kame_erp_client_id', 'sanitize_text_field');
+    register_setting('kame_erp_settings', $prefix . 'kame_erp_client_secret', 'sanitize_text_field');
+    register_setting('kame_erp_settings', $prefix . 'kame_erp_usuario_kame', 'sanitize_text_field');
+    register_setting('kame_erp_settings', $prefix . 'kame_erp_access_token', 'sanitize_text_field');
+    register_setting('kame_erp_settings', $prefix . 'kame_erp_token_expiration', 'intval');
 }
 
 function kame_erp_section_callback() {
