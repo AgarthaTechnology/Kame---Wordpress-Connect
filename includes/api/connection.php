@@ -42,6 +42,8 @@ function fetch_and_store_kame_erp_access_token() {
     $grant_type = 'client_credentials';
 
     error_log('Fetching KAME ERP access token...');
+    error_log('Client ID: ' . $client_id);
+    error_log('Client Secret: ' . str_repeat('*', strlen($client_secret) - 4) . substr($client_secret, -4));
 
     $curl = curl_init();
 
@@ -90,6 +92,8 @@ function fetch_and_store_kame_erp_access_token() {
         error_log('Cuerpo de la respuesta: ' . $response);
         return false;
     }
+
+    error_log('Respuesta completa de la API: ' . $response);
 
     if (!empty($data->access_token)) {
         update_kame_erp_access_token($data);
