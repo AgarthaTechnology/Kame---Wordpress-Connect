@@ -54,3 +54,58 @@ function kame_erp_sanitize_warehouses($input) {
 }
 
 add_action('admin_init', 'kame_erp_inventory_settings_init');
+
+// Agregar pestaña "Bodega Kame" en la edición del producto
+function kame_erp_add_product_tab($tabs) {
+    $tabs['kame_bodega'] = array(
+        'label'    => __('Bodega Kame', 'woocommerce'),
+        'target'   => 'kame_bodega_product_data',
+        'class'    => array('show_if_simple', 'show_if_variable'),
+        'priority' => 21,
+    );
+    return $tabs;
+}
+add_filter('woocommerce_product_data_tabs', 'kame_erp_add_product_tab');
+
+function kame_erp_bodega_product_tab_content() {
+    global $post;
+    $warehouses = get_option('kame_erp_warehouses', []);
+    $selected_warehouses = get_post_meta($post->ID, '_kame_erp_warehouses', true);
+    if (!is_array($selected_warehouses)) {
+        $selected_warehouses = [];
+    }
+    echo '<div id="kame_bodega_product_data" class="panel woocommerce_options_panel">';
+    echo '<div class="options_group">';
+    echo '<p class="form-field">';
+    echo '<label for="kame_erp_warehouses">' . __('Bodegas', 'woocommerce') . '</label>';
+    foreach ($warehouses as $warehouse) {
+        $checked = in_array($warehouse, $selected_warehouses) ? 'checked' : '';
+        echo '<input type="checkbox" name="kame_erp_warehouses[]" value="' . esc_attr($warehouse) . '" ' . $checked . '> ' . esc_html($warehouse) . '<br>';
+    }
+    echo '</p>';
+    echo '</div>';
+    echo '</div>';
+}
+add_action('woocommerce_product_data_panels', 'kame_erp_bodega_product_tab_content');
+
+function kame_erp_save_product($post_id) {
+    $warehouses = isset($_POST['kame_erp_warehouses']) ? array_map('sanitize_text_field', $_POST['kame_erp_warehouses']) : [];
+    update_post_meta($post_id, '_kame_erp_warehouses', $warehouses);
+}
+add_action('woocommerce_process_product_meta', 'kame_erp_save_product');
+
+// Agregar columna de sincronización en la lista de productos
+function kame_erp_add_sync_column($columns) {
+    $columns['sync_kame'] = __('Sync Kame', 'woocommerce');
+    return $columns;
+}
+add_filter('manage_edit-product_columns', 'kame_erp_add_sync_column');
+
+function kame_erp_render_sync_column($column, $post_id) {
+    if ($column == 'sync_kame') {
+        $synced = get_post_meta($post_id, '_kame_erp_synced', true);
+        $icon = $synced ? '🔵' : '🔴';
+        echo '<span style="font-size: 20px;">' . $icon . '</span>';
+    }
+}
+add_action('manage_product_posts_custom_column', 'kame_erp_render_sync_column', 10, 2);
