@@ -76,18 +76,18 @@ function kame_erp_client_secret_callback() {
 function kame_erp_token_status_callback() {
     $access_token = get_option('kame_erp_access_token', '');
     $is_available = !empty($access_token);
-    $status_text = $is_available ? 'Disponible' : 'No Disponible';
+    $status_text = $is_available ? 'DISPONIBLE' : 'NO DISPONIBLE';
     $status_class = $is_available ? 'status-available' : 'status-unavailable';
 
-    echo '<p>Token: <span class="' . esc_attr($status_class) . '">' . esc_html($status_text) . '</span></p>';
+    echo '<div class="' . esc_attr($status_class) . '">' . esc_html($status_text) . '</div>';
 }
 
 function kame_erp_connection_status_callback() {
     $is_connected = kame_erp_check_connection();
-    $status_text = $is_connected ? 'Online' : 'Offline';
+    $status_text = $is_connected ? 'ONLINE' : 'OFFLINE';
     $status_class = $is_connected ? 'status-online' : 'status-offline';
 
-    echo '<p>Conexión: <span class="' . esc_attr($status_class) . '">' . esc_html($status_text) . '</span></p>';
+    echo '<div class="' . esc_attr($status_class) . '">' . esc_html($status_text) . '</div>';
 }
 
 function kame_erp_manual_token_button_callback() {
@@ -129,19 +129,31 @@ add_action('admin_footer', function () {
 add_action('admin_head', function () {
     echo '<style>
         .status-online {
-            color: green;
+            background-color: #28a745;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
             font-weight: bold;
         }
         .status-offline {
-            color: red;
+            background-color: #dc3545;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
             font-weight: bold;
         }
         .status-available {
-            color: green;
+            background-color: #28a745;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
             font-weight: bold;
         }
         .status-unavailable {
-            color: red;
+            background-color: #dc3545;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
             font-weight: bold;
         }
     </style>';
@@ -149,3 +161,4 @@ add_action('admin_head', function () {
 
 // Inicializar la configuración
 add_action('admin_init', 'kame_erp_settings_init');
+
