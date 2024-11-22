@@ -2,7 +2,7 @@
 /*
 Plugin Name: Kame ERP - WooCommerce Integration
 Description: Configura las credenciales de la API de KAME ERP desde el panel de administrador de WordPress. Incluye integración con el checkout de WooCommerce, envío de datos de venta al ERP, sincronización de inventario, y gestión de bodegas. Diseñado por Agartha Marketing Agency.
-Version: 3.4.5
+Version: 3.7.1
 Author: Agartha Marketing Agency
 Author URI: https://agarthamarketing.com
 */
