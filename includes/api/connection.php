@@ -98,11 +98,11 @@ function fetch_and_store_kame_erp_access_token() {
     if (!empty($data->access_token)) {
         update_kame_erp_access_token($data);
         error_log('Token obtenido exitosamente.');
-        return $data->access_token;
+        wp_send_json_success('Token obtenido exitosamente.');
     }
 
     error_log('La respuesta de la API no contiene un token de acceso. Respuesta: ' . $response);
-    return false;
+    wp_send_json_error('No se pudo obtener el token.');
 }
 
 // Registrar el hook AJAX
