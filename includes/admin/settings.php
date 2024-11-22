@@ -118,9 +118,11 @@ add_action('admin_footer', function () {
             }).then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    console.log("Token obtenido exitosamente:", data);
                     alert("Token obtenido exitosamente!");
                     location.reload();
                 } else {
+                    console.error("Error al obtener el token:", data);
                     alert("Error al obtener el token.");
                 }
             });
