@@ -32,8 +32,10 @@ function kame_erp_inventory_section_callback() {
 }
 
 function kame_erp_warehouses_callback() {
-    $warehouses = get_option('kame_erp_warehouses', []);
-    echo '<textarea name="kame_erp_warehouses" style="width: 100%;">' . esc_textarea(json_encode($warehouses)) . '</textarea>';
+    $warehouses = get_option('kame_erp_warehouses', '');
+    $warehouses = is_array($warehouses) ? implode("\n", $warehouses) : $warehouses;
+    echo '<p>Ingrese las bodegas con los mismos nombres registrados en KAME ERP, una bodega por línea.</p>';
+    echo '<textarea name="kame_erp_warehouses" style="width: 300px; height: 100px;">' . esc_textarea($warehouses) . '</textarea>';
 }
 
 function kame_erp_sync_frequency_callback() {
@@ -46,11 +48,9 @@ function kame_erp_sync_frequency_callback() {
 }
 
 function kame_erp_sanitize_warehouses($input) {
-    if (is_array($input)) {
-        $input = json_encode($input);
-    }
-    $warehouses = json_decode($input, true);
-    return is_array($warehouses) ? $warehouses : [];
+    $warehouses = explode("\n", $input);
+    $warehouses = array_filter(array_map('trim', $warehouses));
+    return $warehouses;
 }
 
 add_action('admin_init', 'kame_erp_inventory_settings_init');
