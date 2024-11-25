@@ -94,7 +94,7 @@ function kame_erp_token_expiration_callback() {
     $token_expiration = (int) get_option('kame_erp_token_expiration', 0);
     $expiration_date = $token_expiration ? date('Y-m-d H:i:s', $token_expiration) : 'No configurado';
 
-    echo '<input type="text" value="' . esc_attr($expiration_date) . '" style="width: auto;" readonly>';
+    echo '<input type="text" value="' . esc_attr($expiration_date) . '" style="width: 100%;" readonly>';
 }
 
 function kame_erp_connection_status_callback() {
