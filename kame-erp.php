@@ -12,7 +12,6 @@ require_once plugin_dir_path(__FILE__) . 'includes/admin/settings.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/menu.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/functions.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/inventory.php';
-require_once plugin_dir_path(__FILE__) . 'includes/admin/import-products.php';
 require_once plugin_dir_path(__FILE__) . 'includes/frontend/checkout.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/connection.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/sync.php';
