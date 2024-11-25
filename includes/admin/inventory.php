@@ -104,7 +104,7 @@ add_filter('manage_edit-product_columns', 'kame_erp_add_sync_column');
 function kame_erp_render_sync_column($column, $post_id) {
     if ($column == 'sync_kame') {
         $synced = get_post_meta($post_id, '_kame_erp_synced', true);
-        $icon = $synced ? '🔵' : '🔴';
+        $icon = $synced ? '🟢' : '🔴';
         echo '<span style="font-size: 20px;">' . $icon . '</span>';
     }
 }
