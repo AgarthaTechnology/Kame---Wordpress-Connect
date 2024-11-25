@@ -80,14 +80,15 @@ function kame_erp_functions_page() {
 function kame_erp_inventory_page() {
     ?>
     <div class="wrap">
-        <h1>Inventario de KAME ERP</h1>
-        <form method="post" action="options.php">
+        <h1>Registro de Sincronización de Inventario</h1>
+        <!-- Eliminar el formulario que contiene el botón "Guardar" -->
+        <!-- <form method="post" action="options.php">
             <?php
             settings_fields('kame_erp_inventory');
             do_settings_sections('kame_erp_inventory');
             submit_button();
             ?>
-        </form>
+        </form> -->
     </div>
     <?php
 }
