@@ -30,15 +30,6 @@ function kame_erp_menu() {
 
     add_submenu_page(
         'kame_erp_settings',
-        'Importar Productos',
-        'Importar Productos',
-        'manage_options',
-        'kame_erp_import_products',
-        'kame_erp_import_products_page'
-    );
-
-    add_submenu_page(
-        'kame_erp_settings',
         'Créditos',
         'Créditos',
         'manage_options',
@@ -85,21 +76,6 @@ function kame_erp_inventory_page() {
             <?php
             settings_fields('kame_erp_inventory');
             do_settings_sections('kame_erp_inventory');
-            submit_button();
-            ?>
-        </form>
-    </div>
-    <?php
-}
-
-function kame_erp_import_products_page() {
-    ?>
-    <div class="wrap">
-        <h1>Importar Productos</h1>
-        <form method="post" action="options.php">
-            <?php
-            settings_fields('kame_erp_import_products');
-            do_settings_sections('kame_erp_import_products');
             submit_button();
             ?>
         </form>
