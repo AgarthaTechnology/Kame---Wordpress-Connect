@@ -18,6 +18,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/api/connection.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/sync.php';
 require_once plugin_dir_path(__FILE__) . 'includes/utils/log.php';
 require_once plugin_dir_path(__FILE__) . 'includes/cron/schedule.php';
+require_once plugin_dir_path(__FILE__) . 'includes/admin/instructions.php'; 
 
 // Initialize plugin functions and hooks
 function kame_erp_init() {
