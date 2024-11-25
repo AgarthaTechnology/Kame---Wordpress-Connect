@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Kame ERP - WooCommerce Integration
-Description: Configura las credenciales de la API de KAME ERP desde el panel de administrador de WordPress. Incluye integración con el checkout de WooCommerce, envío de datos de venta al ERP, sincronización de inventario, y gestión de bodegas. Diseñado por Agartha Marketing Agency.
+Description: Configura las credenciales de la API de KAME ERP desde el panel de administrador de WordPress. Incluye integración con el checkout de WooCommerce, envío de datos de venta al ERP, sincronización de inventario y más.
 Version: 3.7.1
 Author: Agartha Marketing Agency
 Author URI: https://agarthamarketing.com
@@ -17,15 +17,14 @@ require_once plugin_dir_path(__FILE__) . 'includes/frontend/checkout.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/connection.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/sync.php';
 require_once plugin_dir_path(__FILE__) . 'includes/utils/log.php';
-require_once plugin_dir_path(__FILE__) . 'includes/cron/schedule.php';
-require_once plugin_dir_path(__FILE__) . 'includes/admin/instructions.php'; 
+require_once plugin_dir_path(__FILE__) . 'includes/admin/instructions.php'; // Añadir esta línea
 
 // Initialize plugin functions and hooks
 function kame_erp_init() {
     kame_erp_settings_init();
     kame_erp_functions_settings_init();
     kame_erp_inventory_settings_init();
-    kame_erp_schedule_inventory_sync();
+    // kame_erp_schedule_inventory_sync(); // Esta línea ha sido comentada/eliminada
 }
 add_action('admin_init', 'kame_erp_init');
 add_action('admin_menu', 'kame_erp_menu');
