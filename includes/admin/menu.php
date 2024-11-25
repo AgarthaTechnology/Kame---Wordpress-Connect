@@ -36,6 +36,15 @@ function kame_erp_menu() {
         'kame_erp_credits',
         'kame_erp_credits_page'
     );
+
+    add_submenu_page(
+        'kame_erp_settings',
+        'Instrucciones Cron Job',
+        'Instrucciones Cron Job',
+        'manage_options',
+        'kame_erp_cron_instructions',
+        'kame_erp_cron_instructions'
+    );
 }
 
 function kame_erp_config_page() {
@@ -94,6 +103,24 @@ function kame_erp_credits_page() {
             submit_button();
             ?>
         </form>
+    </div>
+    <?php
+}
+
+function kame_erp_cron_instructions() {
+    ?>
+    <div class="wrap">
+        <h1>Instrucciones para Configurar el Cron Job</h1>
+        <p>Sigue estos pasos para configurar la sincronización automática cada 10 minutos usando un cron job en cPanel:</p>
+        <ol>
+            <li>Accede a tu cuenta de cPanel.</li>
+            <li>Busca la sección "Cron Jobs" y haz clic en ella.</li>
+            <li>Añade un nuevo cron job con la siguiente configuración:</li>
+            <ul>
+                <li><strong>Comando:</strong> <code>php /path/to/your/wp-content/plugins/WP-Kame-Connect-3.2.7/sync.php</code></li>
+                <li><strong>Configuración de tiempo:</strong> <code>*/10 * * * *</code> (esto ejecutará el script cada 10 minutos)</li>
+            </ul>
+        </ol>
     </div>
     <?php
 }
