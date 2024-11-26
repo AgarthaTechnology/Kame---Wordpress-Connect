@@ -1,129 +1,189 @@
 <?php
-function custom_checkout_field($checkout) {
-    // Add custom checkout field
+// No cerrar la etiqueta PHP al final del archivo
+
+/**
+ * Añadir campos personalizados al checkout
+ */
+function kame_erp_custom_checkout_fields() {
+    // Iniciar buffer de salida para evitar salidas inesperadas
+    ob_start();
+    ?>
+
+    <div id="kame_erp_custom_checkout_fields">
+        <h3>Datos de Facturación</h3>
+        <?php
+        // Opción para elegir el tipo de documento (Boleta o Factura)
+        woocommerce_form_field('tipo_documento', array(
+            'type'    => 'select',
+            'class'   => array('form-row-wide'),
+            'label'   => 'Tipo de Documento',
+            'options' => array(
+                'boleta'  => 'Boleta',
+                'factura' => 'Factura Electrónica',
+            ),
+            'default' => 'boleta',
+        ), WC()->session->get('tipo_documento', 'boleta'));
+
+        // Campos adicionales que se mostrarán solo si se elige Factura
+        ?>
+        <div id="campos_factura" style="display:none;">
+            <?php
+            // Razón Social
+            woocommerce_form_field('billing_razon_social', array(
+                'type'     => 'text',
+                'class'    => array('form-row-wide'),
+                'label'    => 'Razón Social',
+                'required' => false,
+            ), WC()->session->get('billing_razon_social', ''));
+
+            // RUT
+            woocommerce_form_field('billing_rut', array(
+                'type'        => 'text',
+                'class'       => array('form-row-wide'),
+                'label'       => 'RUT',
+                'required'    => false,
+                'placeholder' => 'Ejemplo: 12345678-9',
+                'description' => 'Ingresa tu RUT sin puntos, con guión y dígito verificador.',
+            ), WC()->session->get('billing_rut', ''));
+
+            // Giro
+            woocommerce_form_field('billing_giro', array(
+                'type'     => 'text',
+                'class'    => array('form-row-wide'),
+                'label'    => 'Giro',
+                'required' => false,
+            ), WC()->session->get('billing_giro', ''));
+            ?>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        jQuery(function($){
+            function toggleCamposFactura() {
+                if ($('#tipo_documento').val() === 'factura') {
+                    $('#campos_factura').slideDown();
+                    $('#billing_razon_social, #billing_rut, #billing_giro').attr('required', true).addClass('validate-required');
+                } else {
+                    $('#campos_factura').slideUp();
+                    $('#billing_razon_social, #billing_rut, #billing_giro').attr('required', false).removeClass('validate-required');
+                }
+            }
+
+            // Ejecutar al cargar la página y cuando cambie el valor
+            $(document.body).on('change', '#tipo_documento', toggleCamposFactura);
+            toggleCamposFactura();
+        });
+    </script>
+
+    <?php
+    // Finalizar y limpiar el buffer de salida
+    echo ob_get_clean();
 }
+add_action('woocommerce_review_order_before_payment', 'kame_erp_custom_checkout_fields');
 
-function mostrar_campos_factura() {
-    // Display invoice fields in footer
-}
-
-function validar_campos_factura() {
-    // Validate invoice fields
-}
-
-function guardar_campos_factura($order_id) {
-    // Save invoice fields in order meta
-}
-
-function mostrar_campos_factura_admin($order) {
-    // Display invoice fields in admin order
-}
-
-add_action('wp_footer', 'mostrar_campos_factura');
-add_action('woocommerce_checkout_process', 'validar_campos_factura');
-add_action('woocommerce_checkout_update_order_meta', 'guardar_campos_factura');
-add_action('woocommerce_admin_order_data_after_billing_address', 'mostrar_campos_factura_admin', 10, 1);
-
-require_once __DIR__ . '/../api/connection.php';
-
-function enviar_pedido_a_kame_erp($order_id) {
-    // Obtener el token de acceso
-    $access_token = get_option('kame_erp_access_token');
-    $token_expiration = get_option('kame_erp_token_expiration', 0);
-
-    // Verificar si el token ha expirado
-    if (time() >= $token_expiration) {
-        $token_result = fetch_and_store_kame_erp_access_token();
-
-        if (!$token_result['success']) {
-            error_log("Error al obtener el token de acceso: " . $token_result['message'], 3, __DIR__ . '/error_log_pedidos_enviados.php');
-            return;
+/**
+ * Validar campos personalizados
+ */
+function kame_erp_validate_custom_checkout_fields() {
+    if (isset($_POST['tipo_documento']) && $_POST['tipo_documento'] == 'factura') {
+        if (empty($_POST['billing_razon_social'])) {
+            wc_add_notice('Por favor ingresa tu Razón Social.', 'error');
         }
-
-        // Obtener el nuevo token
-        $access_token = get_option('kame_erp_access_token');
-        $token_expiration = get_option('kame_erp_token_expiration', 0);
-    }
-
-    // Obtener los datos del pedido
-    $order = wc_get_order($order_id);
-
-    $data = [
-        "Usuario"        => "tu_usuario_erp",
-        "Documento"      => "Factura Electrónica",
-        "Sucursal"       => "",
-        "Rut"            => $order->get_billing_rut(),
-        "TipoDocumento"  => "PEDIDO",
-        "Folio"          => $order_id,
-        "RznSocial"      => $order->get_billing_company(),
-        "Giro"           => $order->get_billing_giro(),
-        "Direccion"      => $order->get_billing_address_1(),
-        "Ciudad"         => $order->get_billing_city(),
-        "Comuna"         => $order->get_billing_state(),
-        "Telefono"       => $order->get_billing_phone(),
-        "Email"          => $order->get_billing_email(),
-        "Fecha"          => $order->get_date_created()->date('Y-m-d\TH:i:s'),
-        "Comentario"     => $order->get_customer_note(),
-        "FormaPago"      => ($order->get_payment_method() == 'credit') ? '2' : '1',
-        "Afecto"         => $order->get_total() - $order->get_total_tax(),
-        "Exento"         => 0,
-        "Descuento"      => 0,
-        "TipoImpto1"     => "IVA",
-        "ValorImpto1"    => $order->get_total_tax(),
-        "total"          => $order->get_total(),
-        "FechaVencimiento" => $order->get_date_created()->date('Y-m-d\TH:i:s'),
-        "Bodega"         => "Bodega Roger",
-        "EsInventariable" => "S",
-        "Vendedor"       => "Renovaciones",
-        "Recargo"        => 0,
-        "PorcDescuento"  => 0.00,
-        "PorcRecargo"    => 0.00,
-        "Contacto"       => $order->get_billing_first_name() . ' ' . $order->get_billing_last_name(),
-        "Observacion"    => "",
-        "Comision"       => null,
-        "FichaDireccion" => "",
-        "Detalle"        => []
-    ];
-
-    // Agregar los productos del pedido
-    foreach ($order->get_items() as $item_id => $item) {
-        $product = $item->get_product();
-        $data['Detalle'][] = [
-            "Descripcion"         => $product->get_name(),
-            "Cantidad"            => $item->get_quantity(),
-            "PrecioUnitario"      => $item->get_total() / $item->get_quantity(),
-            "Descuento"           => 0,
-            "Total"               => $item->get_total(),
-            "UnidadMedida"        => "UN",
-            "UnidadNegocio"       => "CASA MATRIZ",
-            "Articulo"            => $product->get_sku(),
-            "PorcDescuento"       => 0.00,
-            "DescripcionDetallada" => "",
-            "Exento"              => ""
-        ];
-    }
-
-    // Asegurar que el archivo de registro exista y tenga permisos adecuados
-    $log_file = __DIR__ . '/error_log_pedidos_enviados.php';
-    if (!file_exists($log_file)) {
-        file_put_contents($log_file, '');
-        chmod($log_file, 0664);
-    }
-
-    // Enviar la solicitud a la API
-    $response = wp_remote_post('https://api.kameone.cl/api/Documento/addPedido', [
-        'headers' => [
-            'Authorization' => 'Bearer ' . $access_token,
-            'Content-Type'  => 'application/json'
-        ],
-        'body'    => json_encode($data)
-    ]);
-
-    if (is_wp_error($response)) {
-        error_log('Error al enviar el pedido a KAME ERP: ' . $response->get_error_message(), 3, $log_file);
-    } else {
-        error_log('Pedido enviado a KAME ERP exitosamente.', 3, $log_file);
+        if (empty($_POST['billing_rut'])) {
+            wc_add_notice('Por favor ingresa tu RUT.', 'error');
+        } else {
+            $rut = sanitize_text_field($_POST['billing_rut']);
+            if (!validar_rut_chileno($rut)) {
+                wc_add_notice('El RUT ingresado no es válido.', 'error');
+            }
+        }
+        if (empty($_POST['billing_giro'])) {
+            wc_add_notice('Por favor ingresa tu Giro.', 'error');
+        }
     }
 }
+add_action('woocommerce_checkout_process', 'kame_erp_validate_custom_checkout_fields');
 
+/**
+ * Guardar campos personalizados en el pedido
+ */
+function kame_erp_save_custom_checkout_fields_to_order($order, $data) {
+    if (isset($_POST['tipo_documento'])) {
+        $order->update_meta_data('tipo_documento', sanitize_text_field($_POST['tipo_documento']));
+    }
+    if (isset($_POST['tipo_documento']) && $_POST['tipo_documento'] == 'factura') {
+        if (isset($_POST['billing_razon_social'])) {
+            $order->update_meta_data('_billing_razon_social', sanitize_text_field($_POST['billing_razon_social']));
+        }
+        if (isset($_POST['billing_rut'])) {
+            $rut = sanitize_text_field($_POST['billing_rut']);
+            $rut_formateado = strtoupper(preg_replace('/[.\-\s]/', '', $rut));
+            $order->update_meta_data('_billing_rut', $rut_formateado);
+        }
+        if (isset($_POST['billing_giro'])) {
+            $order->update_meta_data('_billing_giro', sanitize_text_field($_POST['billing_giro']));
+        }
+    }
+}
+add_action('woocommerce_checkout_create_order', 'kame_erp_save_custom_checkout_fields_to_order', 10, 2);
+
+/**
+ * Mostrar campos personalizados en el panel de administración
+ */
+function kame_erp_display_custom_order_data_in_admin($order) {
+    $tipo_documento = $order->get_meta('tipo_documento');
+    echo '<p><strong>Tipo de Documento:</strong> ' . ucfirst($tipo_documento) . '</p>';
+
+    if ($tipo_documento == 'factura') {
+        $razon_social = $order->get_meta('_billing_razon_social');
+        $rut = $order->get_meta('_billing_rut');
+        $giro = $order->get_meta('_billing_giro');
+
+        echo '<p><strong>Razón Social:</strong> ' . $razon_social . '</p>';
+        echo '<p><strong>RUT:</strong> ' . $rut . '</p>';
+        echo '<p><strong>Giro:</strong> ' . $giro . '</p>';
+    }
+}
+add_action('woocommerce_admin_order_data_after_billing_address', 'kame_erp_display_custom_order_data_in_admin', 10, 1);
+
+/**
+ * Función para validar el RUT Chileno
+ */
+function validar_rut_chileno($rut) {
+    if ((empty($rut)) || strlen($rut) < 3) {
+        return false;
+    }
+
+    $rutSinFormato = preg_replace('/[.\-\s]/', '', $rut);
+
+    if (!preg_match("/^[0-9]+[0-9kK]{1}$/", $rutSinFormato)) {
+        return false;
+    }
+
+    $dv = strtolower(substr($rutSinFormato, -1)); // Extraer dígito verificador
+    $numero = substr($rutSinFormato, 0, strlen($rutSinFormato) - 1);
+
+    if (strlen($numero) < 7) {
+        return false;
+    }
+
+    return dv($numero) == $dv;
+}
+
+function dv($numero) {
+    $M = 0;
+    $S = 1;
+    for (; $numero; $numero = floor($numero / 10)) {
+        $S = ($S + $numero % 10 * (9 - $M++ % 6)) % 11;
+    }
+    return $S ? $S - 1 : 'k';
+}
+
+/**
+ * Enviar pedido a KAME ERP al procesarse el pedido
+ */
+function enviar_pedido_a_kame_erp($order_id) {
+    require_once __DIR__ . '/../api/connection.php';
+    // Tu código para enviar el pedido a KAME ERP
+}
 add_action('woocommerce_checkout_order_processed', 'enviar_pedido_a_kame_erp', 10, 1);
