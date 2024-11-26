@@ -80,7 +80,7 @@ function kame_erp_custom_checkout_fields() {
                 if (rut.length > 1) {
                     rut = rut.slice(0, -1) + '-' + rut.slice(-1);
                 }
-                // Añadir puntos
+                // Añadir puntos cada tres dígitos, excepto antes del guión
                 rut = rut.slice(0, -5).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + rut.slice(-5);
                 return rut;
             }
@@ -205,7 +205,7 @@ function validar_rut_chileno($rut) {
     $i = 2;
     $suma = 0;
     foreach (array_reverse(str_split($numero)) as $n) {
-        if ($i == 8) {
+        if ($i > 7) { // Reiniciar a 2 después de 7
             $i = 2;
         }
         $suma += $n * $i;
@@ -251,7 +251,7 @@ function enviar_pedido_a_kame_erp($order_id) {
     $order = wc_get_order($order_id);
 
     if (!$order) {
-        error_log("Pedido no encontrado: " . $order_id, 3, __DIR__ . '/error_log_pedidos_enviados.log');
+        error_log("Pedido no encontrado: " . $order_id . "\n", 3, __DIR__ . '/error_log_pedidos_enviados.log');
         return;
     }
 
@@ -271,7 +271,7 @@ function enviar_pedido_a_kame_erp($order_id) {
         "Usuario"        => "proyectos@agarthamarketing.com", // Reemplaza con tu usuario ERP
         "Documento"      => ($tipo_documento == 'factura') ? "Factura Electrónica" : "Boleta",
         "Sucursal"       => "", // Si es vacío corresponde a MATRIZ
-        "Rut"            => ($tipo_documento == 'factura') ? $rut : "11111111-1", // RUT genérico si es boleta sin puntos ni guion
+        "Rut"            => ($tipo_documento == 'factura') ? preg_replace('/[.\-]/', '', $rut) : "11111111-1", // RUT sin puntos ni guion para factura, genérico para boleta
         "TipoDocumento"  => "PEDIDO", // Este valor es fijo
         "Folio"          => (int)$order_id,
         "RznSocial"      => ($tipo_documento == 'factura') ? $razon_social : $order->get_formatted_billing_full_name(),
@@ -310,12 +310,12 @@ function enviar_pedido_a_kame_erp($order_id) {
     foreach ($order->get_items() as $item_id => $item) {
         $product = $item->get_product();
         if (!$product) {
-            error_log("Producto no encontrado para el item ID: " . $item_id, 3, __DIR__ . '/error_log_pedidos_enviados.log');
+            error_log("[$order_id] Producto no encontrado para el item ID: " . $item_id . "\n", 3, __DIR__ . '/error_log_pedidos_enviados.log');
             continue;
         }
         $sku = $product->get_sku();
         if (!$sku) {
-            error_log("El producto ID " . $product->get_id() . " no tiene SKU. Omitido.", 3, __DIR__ . '/error_log_pedidos_enviados.log');
+            error_log("[$order_id] El producto ID " . $product->get_id() . " no tiene SKU. Omitido.\n", 3, __DIR__ . '/error_log_pedidos_enviados.log');
             continue;
         }
         $precio_unitario = ($item->get_total() + $item->get_total_tax()) / $item->get_quantity();
@@ -335,7 +335,11 @@ function enviar_pedido_a_kame_erp($order_id) {
     }
 
     // Asegurar que el archivo de registro exista y tenga permisos adecuados
-    $log_file = __DIR__ . '/error_log_pedidos_enviados.log';
+    $log_dir = __DIR__ . '/logs/';
+    if (!file_exists($log_dir)) {
+        mkdir($log_dir, 0755, true);
+    }
+    $log_file = $log_dir . 'error_log_pedidos_enviados.log';
     if (!file_exists($log_file)) {
         file_put_contents($log_file, '');
         chmod($log_file, 0664);
@@ -347,20 +351,20 @@ function enviar_pedido_a_kame_erp($order_id) {
 
     // Verificar si el token ha expirado
     if (time() >= $token_expiration) {
-        error_log("El token ha expirado, obteniendo uno nuevo...", 3, $log_file);
+        error_log("[$order_id] El token ha expirado, obteniendo uno nuevo...\n", 3, $log_file);
         $token_result = fetch_and_store_kame_erp_access_token();
 
         if (!$token_result['success']) {
-            error_log("Error al obtener el token de acceso: " . $token_result['message'], 3, $log_file);
+            error_log("[$order_id] Error al obtener el token de acceso: " . $token_result['message'] . "\n", 3, $log_file);
             return;
         } else {
-            error_log("Nuevo token de acceso obtenido.", 3, $log_file);
+            error_log("[$order_id] Nuevo token de acceso obtenido.\n", 3, $log_file);
         }
 
         // Obtener el nuevo token
         $access_token = get_option('kame_erp_access_token');
     } else {
-        error_log("Token de acceso válido encontrado.", 3, $log_file);
+        error_log("[$order_id] Token de acceso válido encontrado.\n", 3, $log_file);
     }
 
     // Enviar la solicitud a la API
@@ -374,20 +378,24 @@ function enviar_pedido_a_kame_erp($order_id) {
     ]);
 
     if (is_wp_error($response)) {
-        error_log('Error al enviar el pedido a KAME ERP: ' . $response->get_error_message(), 3, $log_file);
+        error_log("[$order_id] Error al enviar el pedido a KAME ERP: " . $response->get_error_message() . "\n", 3, $log_file);
     } else {
         $status_code = wp_remote_retrieve_response_code($response);
+        $body = wp_remote_retrieve_body($response);
+
+        // Log del cuerpo de la respuesta para mayor detalle
+        error_log("[$order_id] Respuesta de la API: $body\n", 3, $log_file);
 
         // Si recibimos un 401, intentamos obtener un nuevo token y reintentar
         if ($status_code === 401) {
-            error_log("Token de acceso expirado o inválido, obteniendo uno nuevo...", 3, $log_file);
+            error_log("[$order_id] Token de acceso expirado o inválido, obteniendo uno nuevo...\n", 3, $log_file);
             $token_result = fetch_and_store_kame_erp_access_token();
 
             if (!$token_result['success']) {
-                error_log("Error al obtener el token de acceso: " . $token_result['message'], 3, $log_file);
+                error_log("[$order_id] Error al obtener el token de acceso: " . $token_result['message'] . "\n", 3, $log_file);
                 return;
             } else {
-                error_log("Nuevo token de acceso obtenido.", 3, $log_file);
+                error_log("[$order_id] Nuevo token de acceso obtenido.\n", 3, $log_file);
             }
 
             // Obtener el nuevo token
@@ -404,18 +412,21 @@ function enviar_pedido_a_kame_erp($order_id) {
             ]);
 
             if (is_wp_error($response)) {
-                error_log('Error al enviar el pedido a KAME ERP después de obtener un nuevo token: ' . $response->get_error_message(), 3, $log_file);
+                error_log("[$order_id] Error al enviar el pedido a KAME ERP después de obtener un nuevo token: " . $response->get_error_message() . "\n", 3, $log_file);
                 return;
             }
 
             $status_code = wp_remote_retrieve_response_code($response);
+            $body = wp_remote_retrieve_body($response);
+
+            // Log del cuerpo de la respuesta para mayor detalle
+            error_log("[$order_id] Respuesta de la API tras reintentar: $body\n", 3, $log_file);
         }
 
         if ($status_code == 200) {
-            error_log('Pedido ' . $order_id . ' enviado a KAME ERP exitosamente.', 3, $log_file);
+            error_log("[$order_id] Pedido enviado a KAME ERP exitosamente.\n", 3, $log_file);
         } else {
-            $body = wp_remote_retrieve_body($response);
-            error_log('Error al enviar el pedido a KAME ERP. Código de estado: ' . $status_code . '. Respuesta: ' . $body, 3, $log_file);
+            error_log("[$order_id] Error al enviar el pedido a KAME ERP. Código de estado: " . $status_code . ". Respuesta: " . $body . "\n", 3, $log_file);
         }
     }
 }
