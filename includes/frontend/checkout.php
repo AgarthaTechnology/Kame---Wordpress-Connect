@@ -251,7 +251,7 @@ function enviar_pedido_a_kame_erp($order_id) {
     $order = wc_get_order($order_id);
 
     if (!$order) {
-        error_log("Pedido no encontrado: " . $order_id . "\n", 3, __DIR__ . '/error_log_pedidos_enviados.log');
+        error_log("[$order_id] Pedido no encontrado.\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
         return;
     }
 
@@ -266,65 +266,110 @@ function enviar_pedido_a_kame_erp($order_id) {
     // Formato de fecha
     $fecha_formato = 'Y-m-d\TH:i:s';
 
+    // Obtener el total de la orden
+    $total = (int) round($order->get_total());
+
+    // Calcular Afecto y ValorImpto1
+    $afecto = (int) floor($total / 1.19); // 19% IVA
+    $valorImpto1 = $total - $afecto;
+    $total_document = $afecto + $valorImpto1; // Debe ser igual a $total
+
+    // Calcular el ratio para distribuir afecto en los detalles
+    $ratio = $afecto / $total;
+
     // Preparar datos para la API
     $data = [
-        "Usuario"        => "proyectos@agarthamarketing.com", // Reemplaza con tu usuario ERP
-        "Documento"      => ($tipo_documento == 'factura') ? "Factura Electrónica" : "Boleta",
-        "Sucursal"       => "", // Si es vacío corresponde a MATRIZ
-        "Rut"            => ($tipo_documento == 'factura') ? preg_replace('/[.\-]/', '', $rut) : "11111111-1", // RUT sin puntos ni guion para factura, genérico para boleta
-        "TipoDocumento"  => "PEDIDO", // Este valor es fijo
-        "Folio"          => (int)$order_id,
-        "RznSocial"      => ($tipo_documento == 'factura') ? $razon_social : $order->get_formatted_billing_full_name(),
-        "Giro"           => ($tipo_documento == 'factura') ? $giro : "Particular",
-        "Direccion"      => $order->get_billing_address_1(),
-        "Ciudad"         => $order->get_billing_city(),
-        "Comuna"         => $order->get_billing_state(),
-        "Telefono"       => $order->get_billing_phone(),
-        "Email"          => $order->get_billing_email(),
-        "Fecha"          => $order->get_date_created()->date($fecha_formato),
-        "Comentario"     => $order->get_customer_note(),
-        "FormaPago"      => ($order->get_payment_method() == 'cod') ? '1' : '2', // "1" (contado), "2" (crédito)
-        "Afecto"         => $order->get_total() - $order->get_total_tax(),
-        "Exento"         => 0,
-        "Descuento"      => 0,
-        "TipoImpto1"     => "IVA",
-        "ValorImpto1"    => $order->get_total_tax(),
-        "total"          => $order->get_total(),
+        "Usuario"          => "proyectos@agarthamarketing.com", // Reemplaza con tu usuario ERP
+        "Documento"        => ($tipo_documento == 'factura') ? "Factura Electrónica" : "Boleta",
+        "Sucursal"         => "", // Si es vacío corresponde a MATRIZ
+        "Rut"              => ($tipo_documento == 'factura') ? preg_replace('/[.\-]/', '', $rut) : "11111111-1", // RUT sin puntos ni guion para factura, genérico para boleta
+        "TipoDocumento"    => "PEDIDO", // Este valor es fijo
+        "Folio"            => (int)$order_id,
+        "RznSocial"        => ($tipo_documento == 'factura') ? $razon_social : $order->get_formatted_billing_full_name(),
+        "Giro"             => ($tipo_documento == 'factura') ? $giro : "Particular",
+        "Direccion"        => $order->get_billing_address_1(),
+        "Ciudad"           => $order->get_billing_city(),
+        "Comuna"           => $order->get_billing_state(),
+        "Telefono"         => $order->get_billing_phone(),
+        "Email"            => $order->get_billing_email(),
+        "Fecha"            => $order->get_date_created()->date($fecha_formato),
+        "Comentario"       => $order->get_customer_note() ? $order->get_customer_note() : "Venta Online", // Comentario del cliente o por defecto
+        "FormaPago"        => "1", // "1" (contado), "2" (credito) - siempre "1" en este caso
+        "Afecto"           => $afecto,
+        "Exento"           => 0,
+        "Descuento"        => 0,
+        "TipoImpto1"       => "IVA",
+        "ValorImpto1"      => $valorImpto1,
+        "total"            => $total_document,
         "FechaVencimiento" => $order->get_date_created()->date($fecha_formato),
-        "Bodega"         => "Bodega Roger",
-        "EsInventariable" => "S",
-        "Vendedor"       => "Renovaciones",
-        "Recargo"        => 0,
-        "PorcDescuento"  => 0.00,
-        "PorcRecargo"    => 0.00,
-        "Contacto"       => $order->get_formatted_billing_full_name(),
-        "Observacion"    => "",
-        "Comision"       => null,
-        "FichaDireccion" => "",
-        "Detalle"        => [],
-        // "Cuotas"         => [], // Puedes agregar lógica para cuotas si es necesario
+        "Bodega"           => "Kame", // Reemplaza con el nombre real de tu bodega en KAME ERP
+        "EsInventariable"  => "S",  // "S" (si), "" (no)
+        "Vendedor"         => "Kame", // Reemplaza con el nombre real de tu vendedor en KAME ERP
+        "Recargo"          => 0,
+        "PorcDescuento"    => 0.00,
+        "PorcRecargo"      => 0.00,
+        "Contacto"         => $order->get_formatted_billing_full_name(),
+        "Observacion"      => "",
+        "Comision"         => null, // Porcentaje
+        "FichaDireccion"   => "",
+        "Detalle"          => [],
+        // "Cuotas"         => [], // Eliminado porque siempre es contado
         // "Referencias"    => []  // Puedes agregar referencias si es necesario
     ];
 
     // Agregar los productos al detalle
-    foreach ($order->get_items() as $item_id => $item) {
+    $sum_detalle_total = 0;
+    $items = $order->get_items();
+    $total_items = count($items);
+    $current_item = 0;
+
+    foreach ($items as $item_id => $item) {
+        $current_item++;
         $product = $item->get_product();
         if (!$product) {
-            error_log("[$order_id] Producto no encontrado para el item ID: " . $item_id . "\n", 3, __DIR__ . '/error_log_pedidos_enviados.log');
+            error_log("[$order_id] Producto no encontrado para el item ID: " . $item_id . "\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
             continue;
         }
         $sku = $product->get_sku();
         if (!$sku) {
-            error_log("[$order_id] El producto ID " . $product->get_id() . " no tiene SKU. Omitido.\n", 3, __DIR__ . '/error_log_pedidos_enviados.log');
+            error_log("[$order_id] El producto ID " . $product->get_id() . " no tiene SKU. Omitido.\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
             continue;
         }
-        $precio_unitario = ($item->get_total() + $item->get_total_tax()) / $item->get_quantity();
+
+        // Obtener el total del item en WooCommerce (sin impuestos)
+        $item_total = (int) round($item->get_total());
+
+        // Calcular el detalle total para el item
+        if ($current_item < $total_items) {
+            $detalle_total_item = (int) floor($item_total * $ratio);
+            $sum_detalle_total += $detalle_total_item;
+        } else {
+            // Para el último item, ajustar para que la suma total coincida con $afecto
+            $detalle_total_item = $afecto - $sum_detalle_total;
+        }
+
+        // Calcular el precio unitario
+        $quantity = (int) $item->get_quantity();
+        if ($quantity > 0) {
+            $precio_unitario = (int) floor($detalle_total_item / $quantity);
+            // Ajustar el total del item en caso de discrepancia
+            $total_item = $precio_unitario * $quantity;
+            // Si hay diferencia, ajustarla en el último item
+            if ($current_item == $total_items) {
+                $diferencia = $detalle_total_item - $total_item;
+                $total_item += $diferencia;
+            }
+        } else {
+            $precio_unitario = 0;
+            $total_item = 0;
+        }
+
         $data['Detalle'][] = [
             "Descripcion"          => $product->get_name(),
-            "Cantidad"             => $item->get_quantity(),
-            "PrecioUnitario"       => round($precio_unitario, 2),
+            "Cantidad"             => $quantity,
+            "PrecioUnitario"       => $precio_unitario,
             "Descuento"            => 0,
-            "Total"                => round($item->get_total() + $item->get_total_tax(), 2),
+            "Total"                => $total_item,
             "UnidadMedida"         => "UN",
             "UnidadNegocio"        => "CASA MATRIZ",
             "Articulo"             => $sku,
@@ -332,6 +377,13 @@ function enviar_pedido_a_kame_erp($order_id) {
             "DescripcionDetallada" => "",
             "Exento"               => ""
         ];
+    }
+
+    // Verificar que la suma de 'Detalle' sea igual a 'Afecto'
+    $sum_detalle_total = array_sum(array_column($data['Detalle'], 'Total'));
+    if ($sum_detalle_total !== $afecto) {
+        error_log("[$order_id] La suma de 'Detalle' ($sum_detalle_total) no coincide con 'Afecto' ($afecto).\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
+        return;
     }
 
     // Asegurar que el archivo de registro exista y tenga permisos adecuados
@@ -386,47 +438,28 @@ function enviar_pedido_a_kame_erp($order_id) {
         // Log del cuerpo de la respuesta para mayor detalle
         error_log("[$order_id] Respuesta de la API: $body\n", 3, $log_file);
 
-        // Si recibimos un 401, intentamos obtener un nuevo token y reintentar
-        if ($status_code === 401) {
-            error_log("[$order_id] Token de acceso expirado o inválido, obteniendo uno nuevo...\n", 3, $log_file);
-            $token_result = fetch_and_store_kame_erp_access_token();
+        // Decodificar la respuesta JSON
+        $response_data = json_decode($body, true);
 
-            if (!$token_result['success']) {
-                error_log("[$order_id] Error al obtener el token de acceso: " . $token_result['message'] . "\n", 3, $log_file);
-                return;
-            } else {
-                error_log("[$order_id] Nuevo token de acceso obtenido.\n", 3, $log_file);
+        // Verificar si la API reporta estado de error
+        if (isset($response_data['Estado']) && strtolower($response_data['Estado']) === 'error') {
+            // Registrar cada error individualmente
+            if (isset($response_data['Error']) && is_array($response_data['Error'])) {
+                foreach ($response_data['Error'] as $error) {
+                    $fields = implode(', ', $error['MemberNames']);
+                    $message = $error['ErrorMessage'];
+                    error_log("[$order_id] Error en $fields: $message\n", 3, $log_file);
+                }
             }
-
-            // Obtener el nuevo token
-            $access_token = get_option('kame_erp_access_token');
-
-            // Reintentar la solicitud con el nuevo token
-            $response = wp_remote_post('https://api.kameone.cl/api/Documento/addPedido', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $access_token,
-                    'Content-Type'  => 'application/json'
-                ],
-                'body'    => json_encode($data),
-                'timeout' => 60,
-            ]);
-
-            if (is_wp_error($response)) {
-                error_log("[$order_id] Error al enviar el pedido a KAME ERP después de obtener un nuevo token: " . $response->get_error_message() . "\n", 3, $log_file);
-                return;
-            }
-
-            $status_code = wp_remote_retrieve_response_code($response);
-            $body = wp_remote_retrieve_body($response);
-
-            // Log del cuerpo de la respuesta para mayor detalle
-            error_log("[$order_id] Respuesta de la API tras reintentar: $body\n", 3, $log_file);
-        }
-
-        if ($status_code == 200) {
-            error_log("[$order_id] Pedido enviado a KAME ERP exitosamente.\n", 3, $log_file);
+            // Registrar que el pedido no fue exitoso
+            error_log("[$order_id] Pedido no enviado a KAME ERP debido a errores.\n", 3, $log_file);
         } else {
-            error_log("[$order_id] Error al enviar el pedido a KAME ERP. Código de estado: " . $status_code . ". Respuesta: " . $body . "\n", 3, $log_file);
+            // Si el estado no es error, asumir éxito
+            if ($status_code == 200) {
+                error_log("[$order_id] Pedido enviado a KAME ERP exitosamente.\n", 3, $log_file);
+            } else {
+                error_log("[$order_id] Error al enviar el pedido a KAME ERP. Código de estado: " . $status_code . ". Respuesta: " . $body . "\n", 3, $log_file);
+            }
         }
     }
 }
