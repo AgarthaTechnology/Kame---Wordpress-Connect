@@ -36,7 +36,7 @@ function enviar_pedido_a_kame_erp($order_id) {
         $token_result = fetch_and_store_kame_erp_access_token();
 
         if (!$token_result['success']) {
-            error_log("Error al obtener el token de acceso: " . $token_result['message']);
+            error_log("Error al obtener el token de acceso: " . $token_result['message'], 3, __DIR__ . '/error_log_pedidos_enviados.php');
             return;
         }
 
@@ -103,6 +103,13 @@ function enviar_pedido_a_kame_erp($order_id) {
         ];
     }
 
+    // Asegurar que el archivo de registro exista y tenga permisos adecuados
+    $log_file = __DIR__ . '/error_log_pedidos_enviados.php';
+    if (!file_exists($log_file)) {
+        file_put_contents($log_file, '');
+        chmod($log_file, 0664);
+    }
+
     // Enviar la solicitud a la API
     $response = wp_remote_post('https://api.kameone.cl/api/Documento/addPedido', [
         'headers' => [
@@ -113,9 +120,9 @@ function enviar_pedido_a_kame_erp($order_id) {
     ]);
 
     if (is_wp_error($response)) {
-        error_log('Error al enviar el pedido a KAME ERP: ' . $response->get_error_message());
+        error_log('Error al enviar el pedido a KAME ERP: ' . $response->get_error_message(), 3, $log_file);
     } else {
-        error_log('Pedido enviado a KAME ERP exitosamente.');
+        error_log('Pedido enviado a KAME ERP exitosamente.', 3, $log_file);
     }
 }
 
