@@ -45,7 +45,7 @@ function kame_erp_custom_checkout_fields() {
                 'class'       => array('form-row-wide'),
                 'label'       => __('RUT', 'wp-kame-connect'),
                 'required'    => false,
-                'placeholder' => 'Ejemplo: 12.345.678-9',
+                'placeholder' => 'Ejemplo: 55.555.555-5',
             ), WC()->session->get('billing_rut', ''));
 
             // Giro
@@ -72,16 +72,26 @@ function kame_erp_custom_checkout_fields() {
                 }
             }
 
-            // Formatear RUT en tiempo real
+            // Función mejorada para formatear el RUT en tiempo real
             function formatRut(rut) {
                 // Eliminar caracteres no válidos
                 rut = rut.replace(/[^\dkK]/g, '').toUpperCase();
-                // Añadir guión antes del dígito verificador
-                if (rut.length > 1) {
-                    rut = rut.slice(0, -1) + '-' + rut.slice(-1);
+
+                // Verificar que el RUT tenga al menos 2 caracteres (cuerpo + DV)
+                if (rut.length <= 1) {
+                    return rut;
                 }
-                // Añadir puntos cada tres dígitos, excepto antes del guión
-                rut = rut.slice(0, -5).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + rut.slice(-5);
+
+                // Separar el cuerpo y el dígito verificador
+                var body = rut.slice(0, -1);
+                var dv = rut.slice(-1);
+
+                // Agregar puntos cada tres dígitos desde la derecha en el cuerpo
+                body = body.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+                // Combinar el cuerpo formateado con el DV usando un guion
+                rut = body + "-" + dv;
+
                 return rut;
             }
 
@@ -270,7 +280,8 @@ function enviar_pedido_a_kame_erp($order_id) {
     $total = (int) round($order->get_total());
 
     // Calcular Afecto y ValorImpto1
-    $afecto = (int) floor($total / 1.19); // 19% IVA
+    // MODIFICACIÓN: Usar round en lugar de floor para Afecto
+    $afecto = (int) round($total / 1.19); // 19% IVA, redondeado
     $valorImpto1 = $total - $afecto;
     $total_document = $afecto + $valorImpto1; // Debe ser igual a $total
 
@@ -279,7 +290,7 @@ function enviar_pedido_a_kame_erp($order_id) {
 
     // Preparar datos para la API
     $data = [
-        "Usuario"          => "proyectos@agarthamarketing.com", // Reemplaza con tu usuario ERP
+        "Usuario"          => "logistica@galinea.cl", // Reemplaza con tu usuario ERP
         "Documento"        => ($tipo_documento == 'factura') ? "Factura Electrónica" : "Boleta",
         "Sucursal"         => "", // Si es vacío corresponde a MATRIZ
         "Rut"              => ($tipo_documento == 'factura') ? preg_replace('/[.\-]/', '', $rut) : "11111111-1", // RUT sin puntos ni guion para factura, genérico para boleta
@@ -293,7 +304,7 @@ function enviar_pedido_a_kame_erp($order_id) {
         "Telefono"         => $order->get_billing_phone(),
         "Email"            => $order->get_billing_email(),
         "Fecha"            => $order->get_date_created()->date($fecha_formato),
-        "Comentario"       => $order->get_customer_note() ? $order->get_customer_note() : "Venta Online", // Comentario del cliente o por defecto
+        "Comentario"       => $order->get_customer_note() ? $order->get_customer_note() : "Venta WEB", // Comentario del cliente o por defecto
         "FormaPago"        => "1", // "1" (contado), "2" (credito) - siempre "1" en este caso
         "Afecto"           => $afecto,
         "Exento"           => 0,
@@ -302,9 +313,9 @@ function enviar_pedido_a_kame_erp($order_id) {
         "ValorImpto1"      => $valorImpto1,
         "total"            => $total_document,
         "FechaVencimiento" => $order->get_date_created()->date($fecha_formato),
-        "Bodega"           => "Kame", // Reemplaza con el nombre real de tu bodega en KAME ERP
+        "Bodega"           => "WEB", // Reemplaza con el nombre real de tu bodega en KAME ERP
         "EsInventariable"  => "S",  // "S" (si), "" (no)
-        "Vendedor"         => "Kame", // Reemplaza con el nombre real de tu vendedor en KAME ERP
+        "Vendedor"         => "WEB", // Reemplaza con el nombre real de tu vendedor en KAME ERP
         "Recargo"          => 0,
         "PorcDescuento"    => 0.00,
         "PorcRecargo"      => 0.00,
