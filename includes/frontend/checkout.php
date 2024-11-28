@@ -269,7 +269,9 @@ function kame_erp_calcular_descuento_y_exento($order) {
             case 'free_shipping': // Envío gratuito
             case 'local_pickup':  // Recogida local
                 $descuento_documento += 1; // Descuento simbólico
-                $exento += 1; // Ajustar exento simbólico a 1
+                if ($exento === 0) {
+                    $exento += 1; // Ajustar exento simbólico a 1 solo si exento es 0
+                }
                 break;
 
             default: // Otros métodos de envío
@@ -284,7 +286,6 @@ function kame_erp_calcular_descuento_y_exento($order) {
         'exento' => $exento,
     ];
 }
-
 
 
 
