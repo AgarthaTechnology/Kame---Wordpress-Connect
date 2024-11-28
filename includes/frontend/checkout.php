@@ -409,11 +409,9 @@ function enviar_pedido_a_kame_erp($order_id) {
 
         $sum_detalle_total += $item_total;
 
-        // Obtener el descuento del ítem
-$descuento = $item->get_discount();
-
-// Log detallado del ítem
-error_log("[$order_id] Item: {$product->get_name()}, Precio: $precio_unitario, Cantidad: $quantity, Descuento: $descuento, Total: $item_total\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
+        // Log detallado del ítem
+        error_log("[$order_id] Item: {$product->get_name()}, Precio: $precio_unitario, Cantidad: $quantity, Descuento: 0, Total: $item_total\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
+    }
 
     // Agregar el Envío como un Ítem en el Detalle
     $shipping_methods = $order->get_shipping_methods();
@@ -543,21 +541,14 @@ error_log("[$order_id] Item: {$product->get_name()}, Precio: $precio_unitario, C
 
         // Verificar si la API reporta estado de error
         if (isset($response_data['Estado']) && strtolower($response_data['Estado']) === 'error') {
-            // Registrar cada error individualmente con detalles adicionales
-if (isset($response_data['Error']) && is_array($response_data['Error'])) {
-    foreach ($response_data['Error'] as $error) {
-        $fields = implode(', ', $error['MemberNames']);
-        $message = $error['ErrorMessage'];
-        error_log("[$order_id] Error en $fields: $message\n", 3, $log_file);
-        
-        // Registrar detalles adicionales del pedido para análisis
-        if (strpos($fields, 'Detalle') !== false) {
-            foreach ($data['Detalle'] as $detalle) {
-                error_log("[$order_id] Detalle Item - Descripción: {$detalle['Descripcion']}, Cantidad: {$detalle['Cantidad']}, Precio Unitario: {$detalle['PrecioUnitario']}, Total: {$detalle['Total']}\n", 3, $log_file);
+            // Registrar cada error individualmente
+            if (isset($response_data['Error']) && is_array($response_data['Error'])) {
+                foreach ($response_data['Error'] as $error) {
+                    $fields = implode(', ', $error['MemberNames']);
+                    $message = $error['ErrorMessage'];
+                    error_log("[$order_id] Error en $fields: $message\n", 3, $log_file);
+                }
             }
-        }
-    }
-}
             // Registrar que el pedido no fue exitoso
             error_log("[$order_id] Pedido no enviado a KAME ERP debido a errores.\n", 3, $log_file);
         } else {
