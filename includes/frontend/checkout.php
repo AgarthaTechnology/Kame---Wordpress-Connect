@@ -268,7 +268,7 @@ function kame_erp_calcular_descuento_y_exento($order) {
             case 'free_shipping':
             case 'local_pickup':
                 $descuento_documento = $order->get_total_discount() + 1; // Descuento adicional para envíos gratuitos
-                $exento = 1; // Precio simbólico para métodos gratuitos
+                $exento = $order->get_shipping_total() + 1; // Precio simbólico para métodos gratuitos
                 break;
 
             default:
