@@ -8,10 +8,7 @@ require_once plugin_dir_path(__FILE__) . '../api/connection.php';
  * Añadir campos personalizados al checkout
  */
 function kame_erp_custom_checkout_fields() {
-    // Iniciar buffer de salida para evitar salidas inesperadas
-    ob_start();
     ?>
-
     <div id="kame_erp_custom_checkout_fields">
         <h3><?php _e('Datos de Facturación', 'wp-kame-connect'); ?></h3>
         <?php
@@ -21,7 +18,7 @@ function kame_erp_custom_checkout_fields() {
             'class'   => array('form-row-wide'),
             'label'   => __('Tipo de Documento', 'wp-kame-connect'),
             'options' => array(
-                'boleta'  => __('Boleta', 'wp-kame-connect'),
+                'boleta'  => __('Boleta Electrónica', 'wp-kame-connect'),
                 'factura' => __('Factura Electrónica', 'wp-kame-connect'),
             ),
             'default' => 'boleta',
@@ -45,7 +42,7 @@ function kame_erp_custom_checkout_fields() {
                 'class'       => array('form-row-wide'),
                 'label'       => __('RUT', 'wp-kame-connect'),
                 'required'    => false,
-                'placeholder' => 'Ejemplo: 55.555.555-5',
+                'placeholder' => 'Ejemplo: 77.214.266-8',
             ), WC()->session->get('billing_rut', ''));
 
             // Giro
@@ -105,10 +102,7 @@ function kame_erp_custom_checkout_fields() {
             toggleCamposFactura();
         });
     </script>
-
     <?php
-    // Finalizar y limpiar el buffer de salida
-    echo ob_get_clean();
 }
 add_action('woocommerce_review_order_before_payment', 'kame_erp_custom_checkout_fields');
 
@@ -250,13 +244,52 @@ function dv($numero) {
     return $S ? $S - 1 : 'k';
 }
 
+
+/**
+ * Calcular el descuento y el exento del documento según el método de envío
+ *
+ * @param WC_Order $order El pedido actual.
+ * @return array Un array asociativo con los valores de 'descuento_documento' y 'exento'.
+ */
+function kame_erp_calcular_descuento_y_exento($order) {
+    $descuento_documento = 0;
+    $exento = 0;
+    $shipping_methods = $order->get_shipping_methods();
+
+    foreach ($shipping_methods as $shipping_item_id => $shipping_item) {
+        $shipping_method_id = $shipping_item->get_method_id();
+
+        switch ($shipping_method_id) {
+            case 'flat_rate':
+                $descuento_documento = $order->get_total_discount();
+                $exento = $order->get_shipping_total(); // Envío sin impuestos
+                break;
+
+            case 'free_shipping':
+            case 'local_pickup':
+                $descuento_documento = $order->get_total_discount() + 1; // Descuento adicional para envíos gratuitos
+                $exento = 1; // Precio simbólico para métodos gratuitos
+                break;
+
+            default:
+                $descuento_documento = $order->get_total_discount();
+                $exento = $order->get_shipping_total(); // Envío sin impuestos
+                break;
+        }
+    }
+
+    return [
+        'descuento_documento' => $descuento_documento,
+        'exento' => $exento,
+    ];
+}
+
+
+
 /**
  * Enviar pedido a KAME ERP al procesarse el pedido
  */
 function enviar_pedido_a_kame_erp($order_id) {
-    // Incluir el archivo de conexión
-    require_once plugin_dir_path(__FILE__) . '../api/connection.php';
-
     // Obtener los datos del pedido
     $order = wc_get_order($order_id);
 
@@ -267,6 +300,11 @@ function enviar_pedido_a_kame_erp($order_id) {
 
     // Obtener tipo de documento
     $tipo_documento = $order->get_meta('tipo_documento');
+    
+     // Calcular el descuento del documento y el exento
+    $calculos = kame_erp_calcular_descuento_y_exento($order);
+    $descuento_documento = $calculos['descuento_documento'];
+    $exento = $calculos['exento'];
 
     // Datos de facturación adicionales
     $razon_social = $order->get_meta('_billing_razon_social');
@@ -275,23 +313,18 @@ function enviar_pedido_a_kame_erp($order_id) {
 
     // Formato de fecha
     $fecha_formato = 'Y-m-d\TH:i:s';
+    $fecha_vencimiento = $order->get_date_created()->date($fecha_formato);
 
-    // Obtener el total de la orden
-    $total = (int) round($order->get_total());
-
-    // Calcular Afecto y ValorImpto1
-    // MODIFICACIÓN: Usar round en lugar de floor para Afecto
-    $afecto = (int) round($total / 1.19); // 19% IVA, redondeado
-    $valorImpto1 = $total - $afecto;
-    $total_document = $afecto + $valorImpto1; // Debe ser igual a $total
-
-    // Calcular el ratio para distribuir afecto en los detalles
-    $ratio = $afecto / $total;
-
+    // Totales del pedido
+    $afecto = $order->get_subtotal(); // Total sin impuestos
+    $exento = $order->get_shipping_total(); // Total de envío sin impuestos
+    $valorImpto1 = $order->get_total_tax(); // Total de impuestos
+    $total_document = $order->get_total(); // Suma de Afecto + Exento + ValorImpto1
+  
     // Preparar datos para la API
     $data = [
-        "Usuario"          => "logistica@galinea.cl", // Reemplaza con tu usuario ERP
-        "Documento"        => ($tipo_documento == 'factura') ? "Factura Electrónica" : "Boleta",
+        "Usuario"          => "proyectos@agarthamarketing.com", // Reemplaza con tu usuario ERP
+        "Documento"        => ($tipo_documento == 'factura') ? "Factura Electrónica" : "Boleta Electrónica",
         "Sucursal"         => "", // Si es vacío corresponde a MATRIZ
         "Rut"              => ($tipo_documento == 'factura') ? preg_replace('/[.\-]/', '', $rut) : "11111111-1", // RUT sin puntos ni guion para factura, genérico para boleta
         "TipoDocumento"    => "PEDIDO", // Este valor es fijo
@@ -303,19 +336,19 @@ function enviar_pedido_a_kame_erp($order_id) {
         "Comuna"           => $order->get_billing_state(),
         "Telefono"         => $order->get_billing_phone(),
         "Email"            => $order->get_billing_email(),
-        "Fecha"            => $order->get_date_created()->date($fecha_formato),
+        "Fecha"            => $fecha_vencimiento,
         "Comentario"       => $order->get_customer_note() ? $order->get_customer_note() : "Venta WEB", // Comentario del cliente o por defecto
         "FormaPago"        => "1", // "1" (contado), "2" (credito) - siempre "1" en este caso
-        "Afecto"           => $afecto,
-        "Exento"           => 0,
-        "Descuento"        => 0,
+        "Afecto"           => $afecto, // Total sin impuestos
+        "Exento"           => $exento, // Total de envío sin impuestos
+        "Descuento"        => $descuento_documento,
         "TipoImpto1"       => "IVA",
-        "ValorImpto1"      => $valorImpto1,
-        "total"            => $total_document,
-        "FechaVencimiento" => $order->get_date_created()->date($fecha_formato),
-        "Bodega"           => "WEB", // Reemplaza con el nombre real de tu bodega en KAME ERP
+        "ValorImpto1"      => $valorImpto1, // Total de impuestos
+        "total"            => $total_document, // Suma de Afecto + Exento + ValorImpto1
+        "FechaVencimiento" => $fecha_vencimiento,
+        "Bodega"           => "KAME", // Reemplaza con el nombre real de tu bodega en KAME ERP
         "EsInventariable"  => "S",  // "S" (si), "" (no)
-        "Vendedor"         => "WEB", // Reemplaza con el nombre real de tu vendedor en KAME ERP
+        "Vendedor"         => "KAME", // Reemplaza con el nombre real de tu vendedor en KAME ERP
         "Recargo"          => 0,
         "PorcDescuento"    => 0.00,
         "PorcRecargo"      => 0.00,
@@ -328,59 +361,41 @@ function enviar_pedido_a_kame_erp($order_id) {
         // "Referencias"    => []  // Puedes agregar referencias si es necesario
     ];
 
+    /**
+     * Generar el detalle de los productos y el envío
+     */
+
     // Agregar los productos al detalle
-    $sum_detalle_total = 0;
     $items = $order->get_items();
-    $total_items = count($items);
-    $current_item = 0;
+    $sum_detalle_total = 0; // Inicializar la suma de 'Detalle'
 
     foreach ($items as $item_id => $item) {
-        $current_item++;
         $product = $item->get_product();
         if (!$product) {
             error_log("[$order_id] Producto no encontrado para el item ID: " . $item_id . "\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
             continue;
         }
+        
         $sku = $product->get_sku();
         if (!$sku) {
             error_log("[$order_id] El producto ID " . $product->get_id() . " no tiene SKU. Omitido.\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
             continue;
         }
 
-        // Obtener el total del item en WooCommerce (sin impuestos)
-        $item_total = (int) round($item->get_total());
+        // Obtener la cantidad y el total del ítem directamente de WooCommerce
+        $quantity = $item->get_quantity();
+            $item_total = ($tipo_documento === 'factura') ? $item->get_total() : ($item->get_total() + $item->get_total_tax());
 
-        // Calcular el detalle total para el item
-        if ($current_item < $total_items) {
-            $detalle_total_item = (int) floor($item_total * $ratio);
-            $sum_detalle_total += $detalle_total_item;
-        } else {
-            // Para el último item, ajustar para que la suma total coincida con $afecto
-            $detalle_total_item = $afecto - $sum_detalle_total;
-        }
 
-        // Calcular el precio unitario
-        $quantity = (int) $item->get_quantity();
-        if ($quantity > 0) {
-            $precio_unitario = (int) floor($detalle_total_item / $quantity);
-            // Ajustar el total del item en caso de discrepancia
-            $total_item = $precio_unitario * $quantity;
-            // Si hay diferencia, ajustarla en el último item
-            if ($current_item == $total_items) {
-                $diferencia = $detalle_total_item - $total_item;
-                $total_item += $diferencia;
-            }
-        } else {
-            $precio_unitario = 0;
-            $total_item = 0;
-        }
+        // Obtener el precio unitario directamente del producto
+        $precio_unitario = ($tipo_documento === 'factura') ? $product->get_price() : wc_get_price_including_tax($product);
 
         $data['Detalle'][] = [
             "Descripcion"          => $product->get_name(),
             "Cantidad"             => $quantity,
             "PrecioUnitario"       => $precio_unitario,
             "Descuento"            => 0,
-            "Total"                => $total_item,
+            "Total"                => $item_total,
             "UnidadMedida"         => "UN",
             "UnidadNegocio"        => "CASA MATRIZ",
             "Articulo"             => $sku,
@@ -388,14 +403,76 @@ function enviar_pedido_a_kame_erp($order_id) {
             "DescripcionDetallada" => "",
             "Exento"               => ""
         ];
+
+        $sum_detalle_total += $item_total;
     }
 
-    // Verificar que la suma de 'Detalle' sea igual a 'Afecto'
-    $sum_detalle_total = array_sum(array_column($data['Detalle'], 'Total'));
-    if ($sum_detalle_total !== $afecto) {
-        error_log("[$order_id] La suma de 'Detalle' ($sum_detalle_total) no coincide con 'Afecto' ($afecto).\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
-        return;
+    // Agregar el Envío como un Ítem en el Detalle
+    $shipping_methods = $order->get_shipping_methods();
+
+    foreach ($shipping_methods as $shipping_item_id => $shipping_item) {
+        $shipping_method_id = $shipping_item->get_method_id(); // Obtener el método de envío ID
+        $shipping_method_name = $shipping_item->get_name(); // Nombre del método de envío
+        $shipping_total = $shipping_item->get_total(); // Total de envío sin impuestos
+
+        // Inicializar valores predeterminados para envío
+    $shipping_total = 0;
+    $shipping_dcto = 0;
+
+    // Determinar la descripción, total y porcentaje de descuento según el método de envío
+    switch ($shipping_method_id) {
+        case 'flat_rate': // Método de envío estándar
+            $descripcion_envio = "ENVIO";
+            $shipping_total = $shipping_item->get_total(); // Total sin modificaciones
+            $shipping_dcto = 0; // Sin descuento
+            break;
+
+        case 'free_shipping': // Envío gratuito
+            $descripcion_envio = "ENVIO GRATUITO";
+            $shipping_total = 1; // Precio simbólico de 1 peso
+            $shipping_dcto = 1; // Descuento simbólico de 1 peso
+            break;
+
+        case 'local_pickup': // Retiro en tienda
+            $descripcion_envio = "RETIRO EN TIENDA";
+            $shipping_total = 1; // Precio simbólico de 1 peso
+            $shipping_dcto = 1; // Descuento simbólico de 1 peso
+            break;
+
+        default: // Cualquier otro método de envío
+            $descripcion_envio = "Envío: " . $shipping_method_name;
+            $shipping_total = $shipping_item->get_total(); // Usar el total predeterminado
+            $shipping_dcto = 0; // Sin descuento
+            break;
     }
+
+        // Verificar que el total de envío sea mayor a cero o que el método de envío sea 'free_shipping' o 'local_pickup' para agregar
+        if ($shipping_total > 0 || in_array($shipping_method_id, ['free_shipping', 'local_pickup'])) {
+            $data['Detalle'][] = [
+                "Descripcion"          => $descripcion_envio, // Descripción modificada
+                "Cantidad"             => 1.000000,
+                "PrecioUnitario"       => $shipping_total,
+                "Descuento"            => $shipping_dcto,
+                "Total"                => $shipping_total,
+                "UnidadMedida"         => "UN",
+                "UnidadNegocio"        => "CASA MATRIZ",
+                "Articulo"             => $descripcion_envio, // Asignar SKU según el método
+                "PorcDescuento"        => 0, // Porcentaje de descuento
+                "DescripcionDetallada" => "",
+                "Exento"               => "S",
+            ];
+
+            // Añadir al sumatorio total
+            $sum_detalle_total += $shipping_total;
+
+            // Opcional: Añadir log para verificar
+            error_log("[$order_id] Añadido envío al Detalle: $descripcion_envio - $shipping_total\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
+        }
+    }
+
+    /**
+     * Continuar con el envío del documento
+     */
 
     // Asegurar que el archivo de registro exista y tenga permisos adecuados
     $log_dir = __DIR__ . '/logs/';
@@ -407,6 +484,14 @@ function enviar_pedido_a_kame_erp($order_id) {
         file_put_contents($log_file, '');
         chmod($log_file, 0664);
     }
+
+    // Agregar logs detallados antes de proceder
+    error_log("[$order_id] Afecto (Subtotal): $afecto\n", 3, $log_file);
+    error_log("[$order_id] Exento (Envío): $exento\n", 3, $log_file);
+    error_log("[$order_id] Suma de 'Detalle': $sum_detalle_total\n", 3, $log_file);
+
+    // Log de verificación exitosa
+    error_log("[$order_id] Continuando con el envío del pedido.\n", 3, $log_file);
 
     // Obtener el token de acceso y verificar si ha expirado
     $access_token = get_option('kame_erp_access_token');
