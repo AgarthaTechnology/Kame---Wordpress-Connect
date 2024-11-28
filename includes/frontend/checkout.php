@@ -246,7 +246,7 @@ function dv($numero) {
 
 
 /**
- * Calcular el descuento y el exento del documento según el método de envío
+ * Calcular el descuento y el exento del documento según el método de envío.
  *
  * @param WC_Order $order El pedido actual.
  * @return array Un array asociativo con los valores de 'descuento_documento' y 'exento'.
@@ -254,26 +254,27 @@ function dv($numero) {
 function kame_erp_calcular_descuento_y_exento($order) {
     $descuento_documento = 0;
     $exento = 0;
+
     $shipping_methods = $order->get_shipping_methods();
 
     foreach ($shipping_methods as $shipping_item_id => $shipping_item) {
         $shipping_method_id = $shipping_item->get_method_id();
 
         switch ($shipping_method_id) {
-            case 'flat_rate':
-                $descuento_documento = $order->get_total_discount();
-                $exento = $order->get_shipping_total(); // Envío sin impuestos
+            case 'flat_rate': // Método de envío estándar
+                $descuento_documento += $order->get_total_discount();
+                $exento += $shipping_item->get_total(); // Envío sin impuestos
                 break;
 
-            case 'free_shipping':
-            case 'local_pickup':
-                $descuento_documento = $order->get_total_discount() + 1; // Descuento adicional para envíos gratuitos
-                $exento = $order->get_shipping_total() + 1; // Precio simbólico para métodos gratuitos
+            case 'free_shipping': // Envío gratuito
+            case 'local_pickup':  // Recogida local
+                $descuento_documento += 1; // Descuento simbólico
+                $exento += 1; // Ajustar exento simbólico a 1
                 break;
 
-            default:
-                $descuento_documento = $order->get_total_discount();
-                $exento = $order->get_shipping_total(); // Envío sin impuestos
+            default: // Otros métodos de envío
+                $descuento_documento += $order->get_total_discount();
+                $exento += $shipping_item->get_total(); // Envío sin impuestos
                 break;
         }
     }
@@ -283,6 +284,8 @@ function kame_erp_calcular_descuento_y_exento($order) {
         'exento' => $exento,
     ];
 }
+
+
 
 
 
