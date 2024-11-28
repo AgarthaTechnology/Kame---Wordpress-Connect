@@ -305,7 +305,7 @@ function enviar_pedido_a_kame_erp($order_id) {
     // Obtener tipo de documento
     $tipo_documento = $order->get_meta('tipo_documento');
     
-     // Calcular el descuento del documento y el exento
+    // Calcular el descuento del documento y el exento
     $calculos = kame_erp_calcular_descuento_y_exento($order);
     $descuento_documento = $calculos['descuento_documento'];
     $exento = $calculos['exento'];
@@ -387,8 +387,7 @@ function enviar_pedido_a_kame_erp($order_id) {
 
         // Obtener la cantidad y el total del ítem directamente de WooCommerce
         $quantity = $item->get_quantity();
-            $item_total = ($tipo_documento === 'factura') ? $item->get_total() : ($item->get_total() + $item->get_total_tax());
-
+        $item_total = ($tipo_documento === 'factura') ? $item->get_total() : ($item->get_total() + $item->get_total_tax());
 
         // Obtener el precio unitario directamente del producto
         $precio_unitario = ($tipo_documento === 'factura') ? $product->get_price() : wc_get_price_including_tax($product);
@@ -408,6 +407,9 @@ function enviar_pedido_a_kame_erp($order_id) {
         ];
 
         $sum_detalle_total += $item_total;
+
+        // Log detallado del ítem
+        error_log("[$order_id] Item: {$product->get_name()}, Precio: $precio_unitario, Cantidad: $quantity, Descuento: 0, Total: $item_total\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
     }
 
     // Agregar el Envío como un Ítem en el Detalle
@@ -419,35 +421,35 @@ function enviar_pedido_a_kame_erp($order_id) {
         $shipping_total = $shipping_item->get_total(); // Total de envío sin impuestos
 
         // Inicializar valores predeterminados para envío
-    $shipping_total = 0;
-    $shipping_dcto = 0;
+        $shipping_total = 0;
+        $shipping_dcto = 0;
 
-    // Determinar la descripción, total y porcentaje de descuento según el método de envío
-    switch ($shipping_method_id) {
-        case 'flat_rate': // Método de envío estándar
-            $descripcion_envio = "ENVIO";
-            $shipping_total = $shipping_item->get_total(); // Total sin modificaciones
-            $shipping_dcto = 0; // Sin descuento
-            break;
+        // Determinar la descripción, total y porcentaje de descuento según el método de envío
+        switch ($shipping_method_id) {
+            case 'flat_rate': // Método de envío estándar
+                $descripcion_envio = "ENVIO";
+                $shipping_total = $shipping_item->get_total(); // Total sin modificaciones
+                $shipping_dcto = 0; // Sin descuento
+                break;
 
-        case 'free_shipping': // Envío gratuito
-            $descripcion_envio = "ENVIO GRATUITO";
-            $shipping_total = 1; // Precio simbólico de 1 peso
-            $shipping_dcto = 1; // Descuento simbólico de 1 peso
-            break;
+            case 'free_shipping': // Envío gratuito
+                $descripcion_envio = "ENVIO GRATUITO";
+                $shipping_total = 1; // Precio simbólico de 1 peso
+                $shipping_dcto = 1; // Descuento simbólico de 1 peso
+                break;
 
-        case 'local_pickup': // Retiro en tienda
-            $descripcion_envio = "RETIRO EN TIENDA";
-            $shipping_total = 1; // Precio simbólico de 1 peso
-            $shipping_dcto = 1; // Descuento simbólico de 1 peso
-            break;
+            case 'local_pickup': // Retiro en tienda
+                $descripcion_envio = "RETIRO EN TIENDA";
+                $shipping_total = 1; // Precio simbólico de 1 peso
+                $shipping_dcto = 1; // Descuento simbólico de 1 peso
+                break;
 
-        default: // Cualquier otro método de envío
-            $descripcion_envio = "Envío: " . $shipping_method_name;
-            $shipping_total = $shipping_item->get_total(); // Usar el total predeterminado
-            $shipping_dcto = 0; // Sin descuento
-            break;
-    }
+            default: // Cualquier otro método de envío
+                $descripcion_envio = "Envío: " . $shipping_method_name;
+                $shipping_total = $shipping_item->get_total(); // Usar el total predeterminado
+                $shipping_dcto = 0; // Sin descuento
+                break;
+        }
 
         // Verificar que el total de envío sea mayor a cero o que el método de envío sea 'free_shipping' o 'local_pickup' para agregar
         if ($shipping_total > 0 || in_array($shipping_method_id, ['free_shipping', 'local_pickup'])) {
@@ -465,17 +467,12 @@ function enviar_pedido_a_kame_erp($order_id) {
                 "Exento"               => "S",
             ];
 
-            // Añadir al sumatorio total
             $sum_detalle_total += $shipping_total;
 
-            // Opcional: Añadir log para verificar
-            error_log("[$order_id] Añadido envío al Detalle: $descripcion_envio - $shipping_total\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
+            // Log detallado del envío
+            error_log("[$order_id] Envío: $descripcion_envio, Precio: $shipping_total, Cantidad: 1, Descuento: $shipping_dcto, Total: $shipping_total\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
         }
     }
-
-    /**
-     * Continuar con el envío del documento
-     */
 
     // Asegurar que el archivo de registro exista y tenga permisos adecuados
     $log_dir = __DIR__ . '/logs/';
@@ -491,6 +488,7 @@ function enviar_pedido_a_kame_erp($order_id) {
     // Agregar logs detallados antes de proceder
     error_log("[$order_id] Afecto (Subtotal): $afecto\n", 3, $log_file);
     error_log("[$order_id] Exento (Envío): $exento\n", 3, $log_file);
+    error_log("[$order_id] Descuento del documento: $descuento_documento\n", 3, $log_file);
     error_log("[$order_id] Suma de 'Detalle': $sum_detalle_total\n", 3, $log_file);
 
     // Log de verificación exitosa
