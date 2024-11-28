@@ -365,11 +365,7 @@ function enviar_pedido_a_kame_erp($order_id) {
         // "Referencias"    => []  // Puedes agregar referencias si es necesario
     ];
 
-    /**
-     * Generar el detalle de los productos y el envío
-     */
-
-    // Agregar los productos al detalle
+    // Generar el detalle de los productos y el envío
     $items = $order->get_items();
     $sum_detalle_total = 0; // Inicializar la suma de 'Detalle'
 
@@ -408,70 +404,72 @@ function enviar_pedido_a_kame_erp($order_id) {
         ];
 
         $sum_detalle_total += $item_total;
-
-        // Log detallado del ítem
-        error_log("[$order_id] Item: {$product->get_name()}, Precio: $precio_unitario, Cantidad: $quantity, Descuento: 0, Total: $item_total\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
     }
 
-    // Agregar el Envío como un Ítem en el Detalle
-$shipping_methods = $order->get_shipping_methods();
+    // Agregar el Envío como un ítem en el Detalle
+    $shipping_methods = $order->get_shipping_methods();
 
-foreach ($shipping_methods as $shipping_item_id => $shipping_item) {
-    $shipping_method_id = $shipping_item->get_method_id(); // Obtener el método de envío ID
-    $shipping_method_name = $shipping_item->get_name(); // Nombre del método de envío
-    $shipping_total = $shipping_item->get_total(); // Total de envío sin impuestos
+    foreach ($shipping_methods as $shipping_item_id => $shipping_item) {
+        $shipping_method_id = $shipping_item->get_method_id(); // Obtener el método de envío ID
+        $shipping_method_name = $shipping_item->get_name(); // Nombre del método de envío
+        $shipping_total = $shipping_item->get_total(); // Total de envío sin impuestos
 
-    // Inicializar valores predeterminados para envío
-    $shipping_total = 0;
-    $shipping_dcto = 0;
+        // Inicializar valores predeterminados para envío
+        $shipping_total = 0;
+        $shipping_dcto = 0;
 
-    // Determinar la descripción, total y porcentaje de descuento según el método de envío
-    switch ($shipping_method_id) {
-        case 'flat_rate': // Método de envío estándar
-            $descripcion_envio = "ENVIO";
-            $shipping_total = $shipping_item->get_total(); // Total sin modificaciones
-            $shipping_dcto = 0; // Sin descuento
-            break;
+        // Determinar la descripción, total y porcentaje de descuento según el método de envío
+        switch ($shipping_method_id) {
+            case 'flat_rate': // Método de envío estándar
+                $descripcion_envio = "ENVIO";
+                $shipping_total = $shipping_item->get_total(); // Total sin modificaciones
+                $shipping_dcto = 0; // Sin descuento
+                break;
 
-        case 'free_shipping': // Envío gratuito
-        case 'local_pickup':  // Retiro en tienda
-            $descripcion_envio = ($shipping_method_id === 'free_shipping') ? "ENVIO GRATUITO" : "RETIRO EN TIENDA";
-            $shipping_total = 1; // Precio simbólico de 1 peso
-            $shipping_dcto = 1; // Descuento simbólico de 1 peso
-            break;
+            case 'free_shipping': // Envío gratuito
+                $descripcion_envio = "ENVIO GRATUITO";
+                $shipping_total = 1; // Precio simbólico de 1 peso
+                $shipping_dcto = 1; // Descuento simbólico de 1 peso
+                break;
 
-        default: // Cualquier otro método de envío
-            $descripcion_envio = "Envío: " . $shipping_method_name;
-            $shipping_total = $shipping_item->get_total(); // Usar el total predeterminado
-            $shipping_dcto = 0; // Sin descuento
-            break;
+            case 'local_pickup': // Retiro en tienda
+                $descripcion_envio = "RETIRO EN TIENDA";
+                $shipping_total = 1; // Precio simbólico de 1 peso
+                $shipping_dcto = 1; // Descuento simbólico de 1 peso
+                break;
+
+            default: // Cualquier otro método de envío
+                $descripcion_envio = "Envío: " . $shipping_method_name;
+                $shipping_total = $shipping_item->get_total(); // Usar el total predeterminado
+                $shipping_dcto = 0; // Sin descuento
+                break;
+        }
+
+        // Verificar que el total de envío sea mayor a cero o que el método de envío sea 'free_shipping' o 'local_pickup' para agregar
+        if ($shipping_total > 0 || in_array($shipping_method_id, ['free_shipping', 'local_pickup'])) {
+            $data['Detalle'][] = [
+                "Descripcion"          => $descripcion_envio, // Descripción modificada
+                "Cantidad"             => 1.000000,
+                "PrecioUnitario"       => $shipping_total,
+                "Descuento"            => $shipping_dcto,
+                "Total"                => $shipping_total,
+                "UnidadMedida"         => "UN",
+                "UnidadNegocio"        => "CASA MATRIZ",
+                "Articulo"             => $descripcion_envio, // Asignar SKU según el método
+                "PorcDescuento"        => 0, // Porcentaje de descuento
+                "DescripcionDetallada" => "",
+                "Exento"               => "S",
+            ];
+
+            // Añadir al sumatorio total
+            $sum_detalle_total += $shipping_total;
+
+            // Opcional: Añadir log para verificar
+            error_log("[$order_id] Añadido envío al Detalle: $descripcion_envio - $shipping_total\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
+        }
     }
 
-    // Verificar que el total de envío sea mayor a cero o que el método de envío sea 'free_shipping' o 'local_pickup' para agregar
-    if ($shipping_total > 0 || in_array($shipping_method_id, ['free_shipping', 'local_pickup'])) {
-        $data['Detalle'][] = [
-            "Descripcion"          => $descripcion_envio, // Descripción modificada
-            "Cantidad"             => 1.000000,
-            "PrecioUnitario"       => $shipping_total,
-            "Descuento"            => $shipping_dcto,
-            "Total"                => $shipping_total,
-            "UnidadMedida"         => "UN",
-            "UnidadNegocio"        => "CASA MATRIZ",
-            "Articulo"             => $descripcion_envio, // Asignar SKU según el método
-            "PorcDescuento"        => 0, // Porcentaje de descuento
-            "DescripcionDetallada" => "",
-            "Exento"               => "S",
-        ];
-
-        $sum_detalle_total += $shipping_total;
-
-        // Log detallado del envío
-        error_log("[$order_id] Envío: $descripcion_envio, Precio: $shipping_total, Cantidad: 1, Descuento: $shipping_dcto, Total: $shipping_total\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
-    }
-}
-
-
-    // Asegurar que el archivo de registro exista y tenga permisos adecuados
+    // Continuar con el envío del documento
     $log_dir = __DIR__ . '/logs/';
     if (!file_exists($log_dir)) {
         mkdir($log_dir, 0755, true);
@@ -485,7 +483,6 @@ foreach ($shipping_methods as $shipping_item_id => $shipping_item) {
     // Agregar logs detallados antes de proceder
     error_log("[$order_id] Afecto (Subtotal): $afecto\n", 3, $log_file);
     error_log("[$order_id] Exento (Envío): $exento\n", 3, $log_file);
-    error_log("[$order_id] Descuento del documento: $descuento_documento\n", 3, $log_file);
     error_log("[$order_id] Suma de 'Detalle': $sum_detalle_total\n", 3, $log_file);
 
     // Log de verificación exitosa
