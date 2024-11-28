@@ -320,10 +320,9 @@ function enviar_pedido_a_kame_erp($order_id) {
 
     // Totales del pedido
     $afecto = $order->get_subtotal(); // Total sin impuestos
-    $exento = $order->get_shipping_total(); // Total de envío sin impuestos
     $valorImpto1 = $order->get_total_tax(); // Total de impuestos
     $total_document = $order->get_total(); // Suma de Afecto + Exento + ValorImpto1
-  
+    
     // Preparar datos para la API
     $data = [
         "Usuario"          => "proyectos@agarthamarketing.com", // Reemplaza con tu usuario ERP
