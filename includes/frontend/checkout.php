@@ -290,6 +290,7 @@ function kame_erp_calcular_descuento_y_exento($order) {
 
 
 
+
 /**
  * Enviar pedido a KAME ERP al procesarse el pedido
  */
@@ -540,14 +541,21 @@ function enviar_pedido_a_kame_erp($order_id) {
 
         // Verificar si la API reporta estado de error
         if (isset($response_data['Estado']) && strtolower($response_data['Estado']) === 'error') {
-            // Registrar cada error individualmente
-            if (isset($response_data['Error']) && is_array($response_data['Error'])) {
-                foreach ($response_data['Error'] as $error) {
-                    $fields = implode(', ', $error['MemberNames']);
-                    $message = $error['ErrorMessage'];
-                    error_log("[$order_id] Error en $fields: $message\n", 3, $log_file);
-                }
+            // Registrar cada error individualmente con detalles adicionales
+if (isset($response_data['Error']) && is_array($response_data['Error'])) {
+    foreach ($response_data['Error'] as $error) {
+        $fields = implode(', ', $error['MemberNames']);
+        $message = $error['ErrorMessage'];
+        error_log("[$order_id] Error en $fields: $message\n", 3, $log_file);
+        
+        // Registrar detalles adicionales del pedido para análisis
+        if (strpos($fields, 'Detalle') !== false) {
+            foreach ($data['Detalle'] as $detalle) {
+                error_log("[$order_id] Detalle Item - Descripción: {$detalle['Descripcion']}, Cantidad: {$detalle['Cantidad']}, Precio Unitario: {$detalle['PrecioUnitario']}, Total: {$detalle['Total']}\n", 3, $log_file);
             }
+        }
+    }
+}
             // Registrar que el pedido no fue exitoso
             error_log("[$order_id] Pedido no enviado a KAME ERP debido a errores.\n", 3, $log_file);
         } else {
