@@ -409,9 +409,11 @@ function enviar_pedido_a_kame_erp($order_id) {
 
         $sum_detalle_total += $item_total;
 
-        // Log detallado del ítem
-        error_log("[$order_id] Item: {$product->get_name()}, Precio: $precio_unitario, Cantidad: $quantity, Descuento: 0, Total: $item_total\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
-    }
+        // Obtener el descuento del ítem
+$descuento = $item->get_discount();
+
+// Log detallado del ítem
+error_log("[$order_id] Item: {$product->get_name()}, Precio: $precio_unitario, Cantidad: $quantity, Descuento: $descuento, Total: $item_total\n", 3, __DIR__ . '/logs/error_log_pedidos_enviados.log');
 
     // Agregar el Envío como un Ítem en el Detalle
     $shipping_methods = $order->get_shipping_methods();
