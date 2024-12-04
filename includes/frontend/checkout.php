@@ -314,7 +314,7 @@ function enviar_pedido_a_kame_erp($order_id) {
         "Sucursal"         => "", // Si es vacío corresponde a MATRIZ
         "Rut"              => ($tipo_documento == 'factura') ? preg_replace('/[.\-]/', '', $rut) : "11111111-1", // RUT sin puntos ni guion para factura, genérico para boleta
         "TipoDocumento"    => "PEDIDO", // Este valor es fijo
-        "Folio"            => (int)$order_id,
+        "Folio"            => "",
         "RznSocial"        => ($tipo_documento == 'factura') ? $razon_social : $order->get_formatted_billing_full_name(),
         "Giro"             => ($tipo_documento == 'factura') ? $giro : "Particular",
         "Direccion"        => $order->get_billing_address_1(),
@@ -392,7 +392,7 @@ function enviar_pedido_a_kame_erp($order_id) {
         $line_total_producto = round($line_total_producto);
 
         $data['Detalle'][] = [
-            "Descripcion"          => $product->get_name(),
+            "Descripcion"          => $sku,
             "Cantidad"             => $quantity,
             "PrecioUnitario"       => $precio_unitario,
             "Descuento"            => 0,
